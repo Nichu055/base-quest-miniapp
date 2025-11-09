@@ -142,3 +142,17 @@ export const CONTRACT_ABI = [
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_MAINNET_CHAIN_ID = 8453;
+
+// Network configurations
+export const NETWORKS = {
+  [BASE_SEPOLIA_CHAIN_ID]: {
+    name: 'Base Sepolia',
+    rpcUrl: 'https://sepolia.base.org',
+    blockExplorer: 'https://sepolia.basescan.org',
+  },
+  [BASE_MAINNET_CHAIN_ID]: {
+    name: 'Base Mainnet',
+    rpcUrl: 'https://mainnet.base.org',
+    blockExplorer: 'https://basescan.org',
+  },
+} as const;

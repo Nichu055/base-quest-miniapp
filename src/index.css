@@ -100,7 +100,8 @@
   }
 
   .toast {
-    @apply fixed bottom-5 right-5 px-6 py-4 rounded-xl bg-surface border border-border shadow-[0_8px_24px_rgba(0,0,0,0.5)] z-[1000] animate-slideIn;
+    @apply bg-surface border-2 px-5 py-3 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.5)] min-w-[280px] max-w-[400px];
+    animation: slideIn 0.3s ease-out;
   }
 
   .toast.success {
@@ -113,5 +114,20 @@
 
   .toast.warning {
     @apply border-warning;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-out;
   }
 }

@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract, formatEther, parseEther } from 'ethers';
+import { BrowserProvider, Contract, formatEther, parseEther, JsonRpcSigner } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from './config';
 
 export interface PlayerData {
@@ -26,11 +26,24 @@ export interface LeaderboardEntry {
 
 class ContractService {
   private contract: Contract | null = null;
-  private signer: any = null;
+  private signer: JsonRpcSigner | null = null;
+  private provider: BrowserProvider | null = null;
 
   async initialize(provider: BrowserProvider) {
+    this.provider = provider;
     this.signer = await provider.getSigner();
     this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+  }
+
+  async reinitialize() {
+    if (!this.provider) throw new Error('Provider not available');
+    await this.initialize(this.provider);
+  }
+
+  disconnect() {
+    this.contract = null;
+    this.signer = null;
+    this.provider = null;
   }
 
   async joinWeek(entryFee: string) {

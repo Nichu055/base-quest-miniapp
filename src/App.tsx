@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { BrowserProvider } from 'ethers';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { contractService, type PlayerData, type Task, type LeaderboardEntry } from './contractService';
-import { BASE_SEPOLIA_CHAIN_ID } from './config';
+import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID } from './config';
+import { useToast } from './hooks/useToast';
 
 // Components
 import Header from './components/Header';
@@ -10,11 +11,13 @@ import PlayerStats from './components/PlayerStats';
 import TaskList from './components/TaskList';
 import Leaderboard from './components/Leaderboard';
 import WeeklyTimer from './components/WeeklyTimer';
+import Toast from './components/Toast';
 
 function App() {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [account, setAccount] = useState<string>('');
+  const [currentChainId, setCurrentChainId] = useState<number>(BASE_SEPOLIA_CHAIN_ID);
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -22,6 +25,7 @@ function App() {
   const [prizePool, setPrizePool] = useState<string>('0');
   const [currentWeek, setCurrentWeek] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'quests' | 'leaderboard'>('quests');
+  const { toasts, removeToast, success, error, warning, info } = useToast();
 
   useEffect(() => {
     initializeMiniApp();
@@ -49,7 +53,7 @@ function App() {
   const connectWallet = async () => {
     try {
       if (!window.ethereum) {
-        alert('Please install MetaMask or use a Web3-enabled browser');
+        error('Please install MetaMask or use a Web3-enabled browser');
         return;
       }
 
@@ -57,16 +61,14 @@ function App() {
       await provider.send('eth_requestAccounts', []);
       
       const network = await provider.getNetwork();
-      if (Number(network.chainId) !== BASE_SEPOLIA_CHAIN_ID) {
+      const chainId = Number(network.chainId);
+      
+      // Check if connected to a supported network
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID && chainId !== BASE_MAINNET_CHAIN_ID) {
+        warning('Please switch to Base Sepolia or Base Mainnet');
         try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${BASE_SEPOLIA_CHAIN_ID.toString(16)}` }],
-          });
-        } catch (error: any) {
-          if (error.code === 4902) {
-            alert('Please add Base Sepolia network to your wallet');
-          }
+          await switchNetwork(BASE_SEPOLIA_CHAIN_ID);
+        } catch (err) {
           return;
         }
       }
@@ -77,11 +79,132 @@ function App() {
       await contractService.initialize(provider);
       
       setAccount(address);
+      setCurrentChainId(chainId);
       setConnected(true);
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-      alert('Failed to connect wallet. Please try again.');
+      success(`Connected to ${address.slice(0, 6)}...${address.slice(-4)}`);
+      
+      // Listen for account changes
+      if (window.ethereum?.on) {
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+        window.ethereum.on('chainChanged', handleChainChanged);
+      }
+    } catch (err: any) {
+      console.error('Failed to connect wallet:', err);
+      error(err.message || 'Failed to connect wallet. Please try again.');
     }
+  };
+
+  const disconnectWallet = () => {
+    try {
+      // Remove event listeners
+      if (window.ethereum?.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+      
+      contractService.disconnect();
+      setConnected(false);
+      setAccount('');
+      setPlayerData(null);
+      setTasks([]);
+      setLeaderboard([]);
+      info('Wallet disconnected');
+    } catch (err: any) {
+      console.error('Failed to disconnect:', err);
+      error('Failed to disconnect wallet');
+    }
+  };
+
+  const switchNetwork = async (targetChainId: number) => {
+    try {
+      if (!window.ethereum) {
+        error('No wallet detected');
+        return;
+      }
+
+      const chainIdHex = `0x${targetChainId.toString(16)}`;
+      
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: chainIdHex }],
+        });
+        
+        setCurrentChainId(targetChainId);
+        await contractService.reinitialize();
+        
+        const networkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
+        success(`Switched to ${networkName}`);
+        
+        // Reload data after network switch
+        if (account) {
+          await loadData();
+        }
+      } catch (switchError: any) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902) {
+          const networkParams = getNetworkParams(targetChainId);
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [networkParams],
+            });
+            setCurrentChainId(targetChainId);
+            await contractService.reinitialize();
+            success(`Added and switched to ${networkParams.chainName}`);
+          } catch (addError: any) {
+            error('Failed to add network to wallet');
+            throw addError;
+          }
+        } else {
+          error(switchError.message || 'Failed to switch network');
+          throw switchError;
+        }
+      }
+    } catch (err: any) {
+      console.error('Network switch error:', err);
+      error(err.message || 'Failed to switch network');
+    }
+  };
+
+  const getNetworkParams = (chainId: number) => {
+    if (chainId === BASE_MAINNET_CHAIN_ID) {
+      return {
+        chainId: '0x2105',
+        chainName: 'Base Mainnet',
+        nativeCurrency: {
+          name: 'Ether',
+          symbol: 'ETH',
+          decimals: 18,
+        },
+        rpcUrls: ['https://mainnet.base.org'],
+        blockExplorerUrls: ['https://basescan.org'],
+      };
+    } else {
+      return {
+        chainId: '0x14a34',
+        chainName: 'Base Sepolia',
+        nativeCurrency: {
+          name: 'Ether',
+          symbol: 'ETH',
+          decimals: 18,
+        },
+        rpcUrls: ['https://sepolia.base.org'],
+        blockExplorerUrls: ['https://sepolia.basescan.org'],
+      };
+    }
+  };
+
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length === 0) {
+      disconnectWallet();
+    } else if (accounts[0] !== account) {
+      window.location.reload();
+    }
+  };
+
+  const handleChainChanged = () => {
+    window.location.reload();
   };
 
   const loadData = async () => {
@@ -111,10 +234,10 @@ function App() {
       setLoading(true);
       await contractService.joinWeek(entryFee);
       await loadData();
-      alert('Successfully joined this week! Start completing tasks to build your streak.');
-    } catch (error: any) {
-      console.error('Failed to join week:', error);
-      alert(error.message || 'Failed to join week. Please try again.');
+      success('Successfully joined this week! Start completing tasks to build your streak.');
+    } catch (err: any) {
+      console.error('Failed to join week:', err);
+      error(err.message || 'Failed to join week. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -125,10 +248,10 @@ function App() {
       setLoading(true);
       await contractService.completeTask(taskId);
       await loadData();
-      alert('Task completed! Keep going to maintain your streak.');
-    } catch (error: any) {
-      console.error('Failed to complete task:', error);
-      alert(error.message || 'Failed to complete task. Please try again.');
+      success('Task completed! Keep going to maintain your streak.');
+    } catch (err: any) {
+      console.error('Failed to complete task:', err);
+      error(err.message || 'Failed to complete task. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -166,7 +289,12 @@ function App() {
 
   return (
     <div className="w-full max-w-miniapp min-h-miniapp mx-auto bg-background relative">
-      <Header account={account} />
+      <Header 
+        account={account} 
+        currentChainId={currentChainId}
+        onNetworkSwitch={switchNetwork}
+        onDisconnect={disconnectWallet}
+      />
       
       <div className="px-5 pb-10">
         <WeeklyTimer 
@@ -231,6 +359,18 @@ function App() {
             )}
           </>
         )}
+      </div>
+
+      {/* Toast Notifications */}
+      <div className="fixed bottom-5 right-5 z-[1000] flex flex-col gap-2">
+        {toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
       </div>
     </div>
   );
