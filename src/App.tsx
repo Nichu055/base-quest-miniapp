@@ -43,6 +43,7 @@ function App() {
 
   useEffect(() => {
     initializeMiniApp();
+    checkExistingConnection(); // Check if wallet is already connected
   }, []);
 
   useEffect(() => {
@@ -67,9 +68,53 @@ function App() {
     try {
       // Initialize Farcaster MiniApp SDK
       await sdk.actions.ready();
-      setLoading(false);
     } catch (error) {
       console.error('Failed to initialize MiniApp:', error);
+    }
+  };
+
+  const checkExistingConnection = async () => {
+    try {
+      if (!window.ethereum) {
+        setLoading(false);
+        return;
+      }
+
+      // Check if there are already connected accounts (without requesting permission)
+      const provider = new BrowserProvider(window.ethereum);
+      const accounts = await provider.send('eth_accounts', []); // Use eth_accounts instead of eth_requestAccounts
+      
+      if (accounts && accounts.length > 0) {
+        // Wallet is already connected, reconnect automatically
+        const network = await provider.getNetwork();
+        const chainId = Number(network.chainId);
+        
+        // Check if on supported network
+        if (chainId !== BASE_SEPOLIA_CHAIN_ID && chainId !== BASE_MAINNET_CHAIN_ID) {
+          setLoading(false);
+          return;
+        }
+
+        // Get address directly from accounts array to avoid ENS
+        const address = accounts[0];
+        
+        await contractService.initialize(provider);
+        
+        setAccount(address);
+        setCurrentChainId(chainId);
+        setConnected(true);
+        updateActivity();
+        sessionStorage.setItem('walletConnected', 'true');
+        
+        // Listen for account changes
+        if (window.ethereum?.on) {
+          window.ethereum.on('accountsChanged', handleAccountsChanged);
+          window.ethereum.on('chainChanged', handleChainChanged);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check existing connection:', err);
+    } finally {
       setLoading(false);
     }
   };
@@ -83,7 +128,7 @@ function App() {
 
       const provider = new BrowserProvider(window.ethereum);
       
-      // Request accounts without ENS resolution
+      // Request accounts - this will trigger wallet popup
       const accounts = await provider.send('eth_requestAccounts', []);
       if (!accounts || accounts.length === 0) {
         error('No accounts found. Please unlock your wallet.');
@@ -103,9 +148,8 @@ function App() {
         }
       }
 
-      // Get signer and address directly without ENS
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
+      // Get address directly from accounts array to avoid ENS lookup
+      const address = accounts[0];
       
       await contractService.initialize(provider);
       
@@ -233,15 +277,31 @@ function App() {
     }
   };
 
-  const handleAccountsChanged = (accounts: string[]) => {
+  const handleAccountsChanged = async (accounts: string[]) => {
     if (accounts.length === 0) {
-      // Wallet disconnected - redirect to home
+      // Wallet disconnected - clear everything and show connect screen
       sessionStorage.removeItem('walletConnected');
       disconnectWallet();
       warning('Wallet disconnected. Please connect again.');
     } else if (accounts[0] !== account) {
-      // Account changed - reload
-      window.location.reload();
+      // Account changed - reconnect with new account
+      try {
+        const provider = new BrowserProvider(window.ethereum!);
+        const network = await provider.getNetwork();
+        const chainId = Number(network.chainId);
+        const address = accounts[0];
+        
+        await contractService.initialize(provider);
+        
+        setAccount(address);
+        setCurrentChainId(chainId);
+        setConnected(true);
+        updateActivity();
+        info(`Switched to ${address.slice(0, 6)}...${address.slice(-4)}`);
+      } catch (err) {
+        console.error('Failed to switch account:', err);
+        disconnectWallet();
+      }
     }
   };
 
