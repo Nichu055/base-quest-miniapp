@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply m-0 p-0 box-border;
+  }
+
+  :root {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    @apply leading-normal font-normal;
+    
+    color-scheme: dark;
+    @apply text-text-primary bg-background;
+    
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply m-0 flex items-center min-w-[320px] min-h-screen overflow-x-hidden;
+    background: linear-gradient(135deg, #0A0B0D 0%, #1A1B1F 100%);
+  }
+
+  #root {
+    @apply w-full max-w-miniapp mx-auto min-h-miniapp;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold leading-tight;
+  }
+
+  button {
+    @apply font-sans rounded-xl border-0 px-6 py-3 text-base font-semibold cursor-pointer transition-all duration-300 ease-in-out;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-hover;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white shadow-[0_4px_12px_rgba(0,82,255,0.3)];
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-primary-hover -translate-y-0.5 shadow-[0_6px_16px_rgba(0,82,255,0.4)];
+  }
+
+  .btn-primary:active:not(:disabled) {
+    @apply translate-y-0;
+  }
+
+  .btn-primary:disabled {
+    @apply bg-surface-light text-text-secondary cursor-not-allowed transform-none shadow-none;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-light text-text-primary border border-border;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-surface border-primary;
+  }
+
+  .card {
+    @apply bg-surface rounded-2xl p-5 border border-border transition-all duration-300 ease-in-out;
+  }
+
+  .card:hover {
+    @apply border-primary shadow-[0_4px_16px_rgba(0,82,255,0.1)];
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #0052FF, #00D395);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .spinner {
+    @apply border-[3px] border-surface-light border-t-primary rounded-full w-10 h-10 animate-spin;
+  }
+
+  .toast {
+    @apply fixed bottom-5 right-5 px-6 py-4 rounded-xl bg-surface border border-border shadow-[0_8px_24px_rgba(0,0,0,0.5)] z-[1000] animate-slideIn;
+  }
+
+  .toast.success {
+    @apply border-success;
+  }
+
+  .toast.error {
+    @apply border-error;
+  }
+
+  .toast.warning {
+    @apply border-warning;
+  }
+}

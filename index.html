@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Base Quest - The Onchain Streak Game</title>
+    
+    <!-- Google Fonts - Space Grotesk for a cool modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Farcaster MiniApp Embed Metadata -->
+    <meta name="fc:miniapp" content='{
+      "version":"next",
+      "imageUrl":"https://your-domain.com/images/embed-preview.png",
+      "button":{
+        "title":"Start Quest",
+        "action":{
+          "type":"launch_miniapp",
+          "name":"Base Quest",
+          "url":"https://your-domain.com"
+        }
+      }
+    }' />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Base Quest - The Onchain Streak Game" />
+    <meta property="og:description" content="Complete daily quests on Base, maintain your streak, and win weekly ETH rewards!" />
+    <meta property="og:image" content="https://your-domain.com/images/og-image.png" />
+    <meta property="og:type" content="website" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Base Quest - The Onchain Streak Game" />
+    <meta name="twitter:description" content="Complete daily quests on Base, maintain your streak, and win weekly ETH rewards!" />
+    <meta name="twitter:image" content="https://your-domain.com/images/og-image.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
