@@ -29,6 +29,10 @@ class ContractService {
   private signer: JsonRpcSigner | null = null;
   private provider: BrowserProvider | null = null;
 
+  isInitialized(): boolean {
+    return this.contract !== null && this.signer !== null && this.provider !== null;
+  }
+
   async initialize(provider: BrowserProvider) {
     this.provider = provider;
     this.signer = await provider.getSigner();
@@ -47,20 +51,20 @@ class ContractService {
   }
 
   async joinWeek(entryFee: string) {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const tx = await this.contract.joinWeek({ value: parseEther(entryFee) });
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const tx = await this.contract!.joinWeek({ value: parseEther(entryFee) });
     return await tx.wait();
   }
 
   async completeTask(taskId: number) {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const tx = await this.contract.completeTask(taskId);
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const tx = await this.contract!.completeTask(taskId);
     return await tx.wait();
   }
 
   async getPlayerData(address: string): Promise<PlayerData> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const data = await this.contract.getPlayerData(address);
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const data = await this.contract!.getPlayerData(address);
     return {
       currentStreak: data.currentStreak,
       totalBasePoints: data.totalBasePoints,
@@ -73,8 +77,8 @@ class ContractService {
   }
 
   async getCurrentWeekTasks(): Promise<Task[]> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const tasks = await this.contract.getCurrentWeekTasks();
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const tasks = await this.contract!.getCurrentWeekTasks();
     return tasks.map((task: any) => ({
       description: task.description,
       taskType: task.taskType,
@@ -84,8 +88,8 @@ class ContractService {
   }
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const [addresses, streaks, points] = await this.contract.getLeaderboard();
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const [addresses, streaks, points] = await this.contract!.getLeaderboard();
     
     return addresses.map((addr: string, i: number) => ({
       address: addr,
@@ -99,32 +103,32 @@ class ContractService {
   }
 
   async getEntryFee(): Promise<string> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const fee = await this.contract.entryFee();
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const fee = await this.contract!.entryFee();
     return formatEther(fee);
   }
 
   async getCurrentWeek(): Promise<number> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const week = await this.contract.currentWeek();
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const week = await this.contract!.currentWeek();
     return Number(week);
   }
 
   async getWeeklyPrizePool(): Promise<string> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const pool = await this.contract.weeklyPrizePool();
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const pool = await this.contract!.weeklyPrizePool();
     return formatEther(pool);
   }
 
   async getTimeUntilWeekEnd(): Promise<number> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const time = await this.contract.getTimeUntilWeekEnd();
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const time = await this.contract!.getTimeUntilWeekEnd();
     return Number(time);
   }
 
   async getTimeUntilDayReset(address: string): Promise<number> {
-    if (!this.contract) throw new Error('Contract not initialized');
-    const time = await this.contract.getTimeUntilDayReset(address);
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    const time = await this.contract!.getTimeUntilDayReset(address);
     return Number(time);
   }
 }
