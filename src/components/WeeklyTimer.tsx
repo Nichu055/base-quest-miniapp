@@ -4,23 +4,29 @@ import { contractService } from '../contractService';
 interface WeeklyTimerProps {
   currentWeek: number;
   prizePool: string;
+  isConnected?: boolean;
 }
 
-function WeeklyTimer({ currentWeek, prizePool }: WeeklyTimerProps) {
+function WeeklyTimer({ currentWeek, prizePool, isConnected = false }: WeeklyTimerProps) {
   const [timeUntilEnd, setTimeUntilEnd] = useState(0);
 
   useEffect(() => {
+    if (!isConnected) return;
+    
     loadEndTime();
     const interval = setInterval(loadEndTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isConnected]);
 
   const loadEndTime = async () => {
+    if (!isConnected) return;
+    
     try {
       const time = await contractService.getTimeUntilWeekEnd();
       setTimeUntilEnd(time);
     } catch (error) {
-      console.error('Failed to load week end time:', error);
+      // Silently fail if contract not initialized
+      console.debug('Timer paused - wallet not connected');
     }
   };
 

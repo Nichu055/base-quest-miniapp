@@ -208,6 +208,8 @@ function App() {
   };
 
   const loadData = async () => {
+    if (!connected || !account) return;
+    
     try {
       const [playerInfo, weekTasks, board, fee, pool, week] = await Promise.all([
         contractService.getPlayerData(account),
@@ -224,12 +226,18 @@ function App() {
       setEntryFee(fee);
       setPrizePool(pool);
       setCurrentWeek(week);
-    } catch (error) {
-      console.error('Failed to load data:', error);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+      error('Failed to load data. Please reconnect your wallet.');
     }
   };
 
   const handleJoinWeek = async () => {
+    if (!contractService.isInitialized()) {
+      warning('Please connect your wallet first');
+      return;
+    }
+    
     try {
       setLoading(true);
       await contractService.joinWeek(entryFee);
@@ -237,13 +245,22 @@ function App() {
       success('Successfully joined this week! Start completing tasks to build your streak.');
     } catch (err: any) {
       console.error('Failed to join week:', err);
-      error(err.message || 'Failed to join week. Please try again.');
+      if (err.message?.includes('user rejected')) {
+        info('Transaction cancelled');
+      } else {
+        error(err.message || 'Failed to join week. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleCompleteTask = async (taskId: number) => {
+    if (!contractService.isInitialized()) {
+      warning('Please connect your wallet first');
+      return;
+    }
+    
     try {
       setLoading(true);
       await contractService.completeTask(taskId);
@@ -251,7 +268,11 @@ function App() {
       success('Task completed! Keep going to maintain your streak.');
     } catch (err: any) {
       console.error('Failed to complete task:', err);
-      error(err.message || 'Failed to complete task. Please try again.');
+      if (err.message?.includes('user rejected')) {
+        info('Transaction cancelled');
+      } else {
+        error(err.message || 'Failed to complete task. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -300,6 +321,7 @@ function App() {
         <WeeklyTimer 
           currentWeek={currentWeek} 
           prizePool={prizePool}
+          isConnected={connected}
         />
 
         {!playerData?.activeThisWeek ? (
