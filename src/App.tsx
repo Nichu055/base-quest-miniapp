@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserProvider } from 'ethers';
+import { BrowserProvider, JsonRpcProvider } from 'ethers';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { contractService, type PlayerData, type Task, type LeaderboardEntry } from './contractService';
 import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID } from './config';
@@ -13,6 +13,34 @@ import TaskList from './components/TaskList';
 import Leaderboard from './components/Leaderboard';
 import WeeklyTimer from './components/WeeklyTimer';
 import Toast from './components/Toast';
+
+// Safe provider that skips ENS lookups on Base networks
+const getSafeBaseProvider = async () => {
+  try {
+    if (!window.ethereum) {
+      // No wallet, return default Base Sepolia RPC
+      return new JsonRpcProvider('https://sepolia.base.org');
+    }
+
+    const browserProvider = new BrowserProvider(window.ethereum);
+    const network = await browserProvider.getNetwork();
+    const chainId = Number(network.chainId);
+
+    // If Base Sepolia or Base Mainnet → return static RPC provider to skip ENS lookups
+    if (chainId === BASE_SEPOLIA_CHAIN_ID) {
+      return new JsonRpcProvider('https://sepolia.base.org');
+    } else if (chainId === BASE_MAINNET_CHAIN_ID) {
+      return new JsonRpcProvider('https://mainnet.base.org');
+    }
+
+    // Otherwise, fallback to normal browser provider
+    return browserProvider;
+  } catch (err) {
+    console.warn('Failed to get provider, using default Base Sepolia RPC:', err);
+    // Default fallback (in case no wallet)
+    return new JsonRpcProvider('https://sepolia.base.org');
+  }
+};
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -81,7 +109,7 @@ function App() {
       }
 
       // Check if there are already connected accounts (without requesting permission)
-      const provider = new BrowserProvider(window.ethereum);
+      const provider = await getSafeBaseProvider();
       const accounts = await provider.send('eth_accounts', []); // Use eth_accounts instead of eth_requestAccounts
       
       if (accounts && accounts.length > 0) {
@@ -126,15 +154,16 @@ function App() {
         return;
       }
 
-      const provider = new BrowserProvider(window.ethereum);
-      
-      // Request accounts - this will trigger wallet popup
-      const accounts = await provider.send('eth_requestAccounts', []);
+      // First, request accounts using the browser provider to trigger popup
+      const browserProvider = new BrowserProvider(window.ethereum);
+      const accounts = await browserProvider.send('eth_requestAccounts', []);
       if (!accounts || accounts.length === 0) {
         error('No accounts found. Please unlock your wallet.');
         return;
       }
       
+      // Now use safe provider for network checks
+      const provider = await getSafeBaseProvider();
       const network = await provider.getNetwork();
       const chainId = Number(network.chainId);
       
@@ -286,7 +315,7 @@ function App() {
     } else if (accounts[0] !== account) {
       // Account changed - reconnect with new account
       try {
-        const provider = new BrowserProvider(window.ethereum!);
+        const provider = await getSafeBaseProvider();
         const network = await provider.getNetwork();
         const chainId = Number(network.chainId);
         const address = accounts[0];
@@ -333,9 +362,13 @@ function App() {
       setCurrentWeek(week);
     } catch (err: any) {
       console.error('Failed to load data:', err);
+      // Check if it's an ENS error - just warn, don't disconnect
+      if (err.message?.includes('network does not support ENS')) {
+        console.warn('ENS not supported on Base — skipping lookup.');
+        return;
+      }
       // Check if it's a connection issue
-      if (err.message?.includes('network does not support ENS') || 
-          err.message?.includes('Please connect your wallet')) {
+      if (err.message?.includes('Please connect your wallet')) {
         error('Connection lost. Please reconnect your wallet.');
         disconnectWallet();
       } else {

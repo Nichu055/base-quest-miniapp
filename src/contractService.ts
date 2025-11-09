@@ -1,4 +1,4 @@
-import { BrowserProvider, Contract, formatEther, parseEther, JsonRpcSigner } from 'ethers';
+import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther, JsonRpcSigner } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from './config';
 
 export interface PlayerData {
@@ -27,16 +27,24 @@ export interface LeaderboardEntry {
 class ContractService {
   private contract: Contract | null = null;
   private signer: JsonRpcSigner | null = null;
-  private provider: BrowserProvider | null = null;
+  private provider: BrowserProvider | JsonRpcProvider | null = null;
 
   isInitialized(): boolean {
-    return this.contract !== null && this.signer !== null && this.provider !== null;
+    return this.contract !== null && this.provider !== null;
   }
 
-  async initialize(provider: BrowserProvider) {
+  async initialize(provider: BrowserProvider | JsonRpcProvider) {
     this.provider = provider;
-    this.signer = await provider.getSigner();
-    this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+    // For read-only operations, we can use the provider directly
+    // For write operations, we need a signer from BrowserProvider
+    if (provider instanceof BrowserProvider) {
+      this.signer = await provider.getSigner();
+      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+    } else {
+      // JsonRpcProvider - read-only mode
+      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+      this.signer = null; // Read-only, no signer available
+    }
   }
 
   async reinitialize() {
@@ -52,12 +60,32 @@ class ContractService {
 
   async joinWeek(entryFee: string) {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    
+    // Need a signer for transactions
+    if (!this.signer && window.ethereum) {
+      const browserProvider = new BrowserProvider(window.ethereum);
+      this.signer = await browserProvider.getSigner();
+      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+    }
+    
+    if (!this.signer) throw new Error('Please connect your wallet to perform transactions');
+    
     const tx = await this.contract!.joinWeek({ value: parseEther(entryFee) });
     return await tx.wait();
   }
 
   async completeTask(taskId: number) {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    
+    // Need a signer for transactions
+    if (!this.signer && window.ethereum) {
+      const browserProvider = new BrowserProvider(window.ethereum);
+      this.signer = await browserProvider.getSigner();
+      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+    }
+    
+    if (!this.signer) throw new Error('Please connect your wallet to perform transactions');
+    
     const tx = await this.contract!.completeTask(taskId);
     return await tx.wait();
   }
