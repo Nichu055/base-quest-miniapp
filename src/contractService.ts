@@ -1,5 +1,17 @@
 import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther, JsonRpcSigner } from 'ethers';
+import type { Eip1193Provider } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from './config';
+
+// Safe signer getter that avoids ENS lookups
+const getSafeSigner = async (): Promise<JsonRpcSigner> => {
+  if (!window.ethereum) throw new Error('No wallet detected');
+  
+  // Get signer from browser provider
+  // Note: getSigner() itself doesn't trigger ENS, only when you call getAddress() on the signer
+  const tempProvider = new BrowserProvider(window.ethereum as Eip1193Provider);
+  const signer = await tempProvider.getSigner();
+  return signer;
+};
 
 export interface PlayerData {
   currentStreak: bigint;
@@ -63,9 +75,13 @@ class ContractService {
     
     // Need a signer for transactions
     if (!this.signer && window.ethereum) {
-      const browserProvider = new BrowserProvider(window.ethereum);
-      this.signer = await browserProvider.getSigner();
-      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+      try {
+        this.signer = await getSafeSigner();
+        this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+      } catch (err) {
+        console.error('Failed to get signer:', err);
+        throw new Error('Please connect your wallet to perform transactions');
+      }
     }
     
     if (!this.signer) throw new Error('Please connect your wallet to perform transactions');
@@ -79,9 +95,13 @@ class ContractService {
     
     // Need a signer for transactions
     if (!this.signer && window.ethereum) {
-      const browserProvider = new BrowserProvider(window.ethereum);
-      this.signer = await browserProvider.getSigner();
-      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+      try {
+        this.signer = await getSafeSigner();
+        this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+      } catch (err) {
+        console.error('Failed to get signer:', err);
+        throw new Error('Please connect your wallet to perform transactions');
+      }
     }
     
     if (!this.signer) throw new Error('Please connect your wallet to perform transactions');
