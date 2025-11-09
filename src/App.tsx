@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserProvider } from 'ethers';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { contractService, type PlayerData, type Task, type LeaderboardEntry } from './contractService';
 import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID } from './config';
 import { useToast } from './hooks/useToast';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
 
 // Components
 import Header from './components/Header';
@@ -27,6 +28,19 @@ function App() {
   const [activeTab, setActiveTab] = useState<'quests' | 'leaderboard'>('quests');
   const { toasts, removeToast, success, error, warning, info } = useToast();
 
+  // Idle timeout handler
+  const handleIdle = useCallback(() => {
+    info('Session expired due to inactivity');
+    disconnectWallet();
+  }, []);
+
+  // 30-minute idle timeout
+  const { updateActivity } = useIdleTimeout({
+    timeout: 30 * 60 * 1000, // 30 minutes
+    onIdle: handleIdle,
+    enabled: connected
+  });
+
   useEffect(() => {
     initializeMiniApp();
   }, []);
@@ -38,6 +52,16 @@ function App() {
       return () => clearInterval(interval);
     }
   }, [connected, account]);
+
+  // Auto-redirect if wallet connection is lost
+  useEffect(() => {
+    if (!loading && !connected && window.ethereum) {
+      const wasConnected = sessionStorage.getItem('walletConnected');
+      if (wasConnected === 'true') {
+        sessionStorage.removeItem('walletConnected');
+      }
+    }
+  }, [connected, loading]);
 
   const initializeMiniApp = async () => {
     try {
@@ -58,7 +82,13 @@ function App() {
       }
 
       const provider = new BrowserProvider(window.ethereum);
-      await provider.send('eth_requestAccounts', []);
+      
+      // Request accounts without ENS resolution
+      const accounts = await provider.send('eth_requestAccounts', []);
+      if (!accounts || accounts.length === 0) {
+        error('No accounts found. Please unlock your wallet.');
+        return;
+      }
       
       const network = await provider.getNetwork();
       const chainId = Number(network.chainId);
@@ -73,6 +103,7 @@ function App() {
         }
       }
 
+      // Get signer and address directly without ENS
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
       
@@ -81,6 +112,8 @@ function App() {
       setAccount(address);
       setCurrentChainId(chainId);
       setConnected(true);
+      updateActivity(); // Initialize activity tracking
+      sessionStorage.setItem('walletConnected', 'true');
       success(`Connected to ${address.slice(0, 6)}...${address.slice(-4)}`);
       
       // Listen for account changes
@@ -90,7 +123,11 @@ function App() {
       }
     } catch (err: any) {
       console.error('Failed to connect wallet:', err);
-      error(err.message || 'Failed to connect wallet. Please try again.');
+      if (err.code === 4001) {
+        info('Connection request rejected');
+      } else {
+        error(err.message || 'Failed to connect wallet. Please try again.');
+      }
     }
   };
 
@@ -108,6 +145,7 @@ function App() {
       setPlayerData(null);
       setTasks([]);
       setLeaderboard([]);
+      sessionStorage.removeItem('walletConnected');
       info('Wallet disconnected');
     } catch (err: any) {
       console.error('Failed to disconnect:', err);
@@ -197,8 +235,12 @@ function App() {
 
   const handleAccountsChanged = (accounts: string[]) => {
     if (accounts.length === 0) {
+      // Wallet disconnected - redirect to home
+      sessionStorage.removeItem('walletConnected');
       disconnectWallet();
+      warning('Wallet disconnected. Please connect again.');
     } else if (accounts[0] !== account) {
+      // Account changed - reload
       window.location.reload();
     }
   };
@@ -209,6 +251,9 @@ function App() {
 
   const loadData = async () => {
     if (!connected || !account) return;
+    
+    // Update activity time on data load
+    updateActivity();
     
     try {
       const [playerInfo, weekTasks, board, fee, pool, week] = await Promise.all([
@@ -226,17 +271,27 @@ function App() {
       setEntryFee(fee);
       setPrizePool(pool);
       setCurrentWeek(week);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load data:', err);
-      error('Failed to load data. Please reconnect your wallet.');
+      // Check if it's a connection issue
+      if (err.message?.includes('network does not support ENS') || 
+          err.message?.includes('Please connect your wallet')) {
+        error('Connection lost. Please reconnect your wallet.');
+        disconnectWallet();
+      } else {
+        error('Failed to load data. Please try again.');
+      }
     }
   };
 
   const handleJoinWeek = async () => {
-    if (!contractService.isInitialized()) {
+    if (!contractService.isInitialized() || !connected) {
       warning('Please connect your wallet first');
+      disconnectWallet();
       return;
     }
+    
+    updateActivity();
     
     try {
       setLoading(true);
@@ -256,10 +311,13 @@ function App() {
   };
 
   const handleCompleteTask = async (taskId: number) => {
-    if (!contractService.isInitialized()) {
+    if (!contractService.isInitialized() || !connected) {
       warning('Please connect your wallet first');
+      disconnectWallet();
       return;
     }
+    
+    updateActivity();
     
     try {
       setLoading(true);
