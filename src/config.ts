@@ -1,4 +1,6 @@
-export const CONTRACT_ADDRESS = "0xYourContractAddressHere"; // UPDATE THIS AFTER DEPLOYMENT
+// TODO: Replace with your actual deployed contract address after running: npx hardhat run scripts/deploy.js --network base-sepolia
+// For testing purposes, using a valid address format (zero address - update after deployment)
+export const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000"; // UPDATE THIS AFTER DEPLOYMENT
 
 export const CONTRACT_ABI = [
   {
