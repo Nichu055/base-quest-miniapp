@@ -511,7 +511,7 @@ function App() {
     try {
       const [playerInfo, weekTasks, board, fee, pool, week] = await Promise.all([
         contractService.getPlayerData(account),
-        contractService.getCurrentWeekTasks(),
+        contractService.getCurrentWeekTasks().catch(() => []), // Gracefully handle empty tasks
         contractService.getLeaderboard(),
         contractService.getEntryFee(),
         contractService.getWeeklyPrizePool(),
@@ -524,6 +524,11 @@ function App() {
       setEntryFee(fee);
       setPrizePool(pool);
       setCurrentWeek(week);
+      
+      // Show info if no tasks available
+      if (weekTasks.length === 0) {
+        info('No tasks available for the current week yet.');
+      }
     } catch (err: any) {
       console.error('Failed to load data:', err);
       

@@ -177,13 +177,29 @@ class ContractService {
 
   async getCurrentWeekTasks(): Promise<Task[]> {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
-    const tasks = await this.contract!.getCurrentWeekTasks();
-    return tasks.map((task: any) => ({
-      description: task.description,
-      taskType: task.taskType,
-      isActive: task.isActive,
-      basePointsReward: task.basePointsReward,
-    }));
+    try {
+      const tasks = await this.contract!.getCurrentWeekTasks();
+      
+      // Handle empty result (when contract returns empty array)
+      if (!tasks || tasks.length === 0) {
+        console.warn('No tasks found for current week');
+        return [];
+      }
+      
+      return tasks.map((task: any) => ({
+        description: task.description,
+        taskType: task.taskType,
+        isActive: task.isActive,
+        basePointsReward: task.basePointsReward,
+      }));
+    } catch (err: any) {
+      // Handle BAD_DATA error (empty response)
+      if (err.code === 'BAD_DATA' || err.message?.includes('could not decode result data')) {
+        console.warn('No tasks initialized for current week - returning empty array');
+        return [];
+      }
+      throw err;
+    }
   }
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
