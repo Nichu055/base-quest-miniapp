@@ -256,43 +256,84 @@ function App() {
       }
 
       const chainIdHex = `0x${targetChainId.toString(16)}`;
+      console.log(`Requesting switch to chain ${chainIdHex} (${targetChainId})`);
+      
+      info('Requesting network switch... Please check your wallet.');
       
       try {
-        // Request network switch - this triggers MetaMask popup
-        await window.ethereum.request({
+        // Request network switch - this triggers wallet popup
+        console.log('Calling wallet_switchEthereumChain...');
+        const result = await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: chainIdHex }],
         });
+        console.log('Switch result:', result);
         
-        setCurrentChainId(targetChainId);
-        await contractService.reinitialize();
+        // Wait a bit for the network to actually switch
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        const networkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
-        success(`Switched to ${networkName}`);
+        // Get fresh provider after switch
+        const provider = await getSafeBaseProvider();
+        const network = await provider.getNetwork();
+        const actualChainId = Number(network.chainId);
         
-        // Reload data after network switch
-        if (account) {
-          await loadData();
+        console.log(`Actual chain after switch: ${actualChainId}, expected: ${targetChainId}`);
+        
+        if (actualChainId === targetChainId) {
+          setCurrentChainId(targetChainId);
+          await contractService.reinitialize();
+          
+          const networkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
+          success(`Switched to ${networkName}`);
+          
+          // Reload data after network switch
+          if (account && isContractDeployed()) {
+            await loadData();
+          }
+        } else {
+          warning(`Network switch may have failed. Currently on chain ${actualChainId}. Please verify in your wallet.`);
         }
       } catch (switchError: any) {
+        console.error('Switch error:', switchError);
+        
         // Error code 4902: Network not added to wallet yet
         if (switchError.code === 4902) {
           const networkParams = getNetworkParams(targetChainId);
+          info('Network not found. Adding to wallet...');
+          console.log('Adding network with params:', networkParams);
+          
           try {
-            // Add network to wallet - this triggers MetaMask popup to add & switch
-            await window.ethereum.request({
+            // Add network to wallet - this triggers wallet popup to add & switch
+            const addResult = await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [networkParams],
             });
-            setCurrentChainId(targetChainId);
-            await contractService.reinitialize();
-            success(`Added and switched to ${networkParams.chainName}`);
+            console.log('Add network result:', addResult);
             
-            // Reload data after adding network
-            if (account) {
-              await loadData();
+            // Wait for network to be added and switched
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Verify the switch happened
+            const provider = await getSafeBaseProvider();
+            const network = await provider.getNetwork();
+            const actualChainId = Number(network.chainId);
+            
+            console.log(`Actual chain after add: ${actualChainId}, expected: ${targetChainId}`);
+            
+            if (actualChainId === targetChainId) {
+              setCurrentChainId(targetChainId);
+              await contractService.reinitialize();
+              success(`Added and switched to ${networkParams.chainName}`);
+              
+              // Reload data after adding network
+              if (account && isContractDeployed()) {
+                await loadData();
+              }
+            } else {
+              warning('Network added but switch may have failed. Please try switching again.');
             }
           } catch (addError: any) {
+            console.error('Add network error:', addError);
             if (addError.code === 4001) {
               // User rejected adding network
               info('Network addition cancelled');
@@ -377,8 +418,39 @@ function App() {
     }
   };
 
-  const handleChainChanged = () => {
-    window.location.reload();
+  const handleChainChanged = async (chainIdHex: string) => {
+    console.log('Chain changed detected:', chainIdHex);
+    
+    try {
+      // Convert hex to number
+      const newChainId = parseInt(chainIdHex, 16);
+      
+      // Check if it's a supported network
+      if (newChainId === BASE_SEPOLIA_CHAIN_ID || newChainId === BASE_MAINNET_CHAIN_ID) {
+        const networkName = newChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
+        info(`Network changed to ${networkName}`);
+        
+        // Update state
+        setCurrentChainId(newChainId);
+        
+        // Reinitialize contract service with new network
+        const provider = await getSafeBaseProvider();
+        await contractService.initialize(provider);
+        
+        // Reload data if connected
+        if (connected && account && isContractDeployed()) {
+          await loadData();
+        }
+      } else {
+        // Unsupported network - disconnect
+        warning(`Unsupported network detected. Please switch to Base Sepolia or Base Mainnet.`);
+        disconnectWallet();
+      }
+    } catch (err) {
+      console.error('Error handling chain change:', err);
+      // Fallback to reload if there's an error
+      window.location.reload();
+    }
   };
 
   const loadData = async () => {
