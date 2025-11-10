@@ -21,9 +21,10 @@ async function main() {
   console.log("📝 Next steps:");
   console.log("1. Update src/config.ts with contract address:", baseQuest.address);
   console.log("2. Verify contract on Basescan");
+  console.log("3. Test all functions on Sepolia before mainnet deployment");
   console.log("");
   console.log("Verification command:");
-  console.log(`npx hardhat verify --network base-mainnet ${baseQuest.address} "${TREASURY_ADDRESS}" "${ATTESTER_ADDRESS}"`);
+  console.log(`npx hardhat verify --network base-sepolia ${baseQuest.address} "${TREASURY_ADDRESS}" "${ATTESTER_ADDRESS}"`);
 }
 
 main()

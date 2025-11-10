@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { BrowserProvider, JsonRpcProvider } from 'ethers';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { contractService, type PlayerData, type Task, type LeaderboardEntry } from './contractService';
-import { BASE_MAINNET_CHAIN_ID, isContractDeployed } from './config';
+import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID, isContractDeployed } from './config';
 import { useToast } from './hooks/useToast';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 
@@ -14,13 +14,13 @@ import Leaderboard from './components/Leaderboard';
 import WeeklyTimer from './components/WeeklyTimer';
 import Toast from './components/Toast';
 
-// Safe provider that skips ENS lookups on Base Mainnet
-// Uses custom RPC if available, otherwise falls back to public endpoint
+// Safe provider that skips ENS lookups on Base networks
+// Uses custom RPC if available, otherwise falls back to public endpoints
 const getSafeBaseProvider = async () => {
   try {
     if (!window.ethereum) {
-      // No wallet, return default Base Mainnet RPC
-      const rpcUrl = import.meta.env.VITE_BASE_MAINNET_RPC || 'https://mainnet.base.org';
+      // No wallet, return default Base Sepolia RPC
+      const rpcUrl = import.meta.env.VITE_BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
       return new JsonRpcProvider(rpcUrl);
     }
 
@@ -29,14 +29,22 @@ const getSafeBaseProvider = async () => {
     const chainId = Number(network.chainId);
 
     // Get custom RPC URL from environment if available
-    const rpcUrl = import.meta.env.VITE_BASE_MAINNET_RPC || 'https://mainnet.base.org';
+    let rpcUrl: string;
+    if (chainId === BASE_SEPOLIA_CHAIN_ID) {
+      rpcUrl = import.meta.env.VITE_BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
+    } else if (chainId === BASE_MAINNET_CHAIN_ID) {
+      rpcUrl = import.meta.env.VITE_BASE_MAINNET_RPC || 'https://mainnet.base.org';
+    } else {
+      // Fallback for other networks
+      return browserProvider;
+    }
 
     // Return static RPC provider to skip ENS lookups
     return new JsonRpcProvider(rpcUrl);
   } catch (err) {
-    console.warn('Failed to get provider, using default Base Mainnet RPC:', err);
+    console.warn('Failed to get provider, using default Base Sepolia RPC:', err);
     // Default fallback
-    const rpcUrl = import.meta.env.VITE_BASE_MAINNET_RPC || 'https://mainnet.base.org';
+    const rpcUrl = import.meta.env.VITE_BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
     return new JsonRpcProvider(rpcUrl);
   }
 };
@@ -45,7 +53,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [account, setAccount] = useState<string>('');
-  const [currentChainId, setCurrentChainId] = useState<number>(BASE_MAINNET_CHAIN_ID);
+  const [currentChainId, setCurrentChainId] = useState<number>(BASE_SEPOLIA_CHAIN_ID);
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -155,8 +163,8 @@ function App() {
         const network = await provider.getNetwork();
         const chainId = Number(network.chainId);
         
-        // Check if on supported network (Base Mainnet only)
-        if (chainId !== BASE_MAINNET_CHAIN_ID) {
+        // Check if on supported network
+        if (chainId !== BASE_SEPOLIA_CHAIN_ID && chainId !== BASE_MAINNET_CHAIN_ID) {
           setLoading(false);
           return;
         }
@@ -221,10 +229,10 @@ function App() {
       
       console.log('Current network:', { chainId, name: network.name });
       
-      // Check if connected to a supported network (Base Mainnet only)
-      if (chainId !== BASE_MAINNET_CHAIN_ID) {
+      // Check if connected to a supported network
+      if (chainId !== BASE_SEPOLIA_CHAIN_ID && chainId !== BASE_MAINNET_CHAIN_ID) {
         const currentNetworkName = chainId === 1 ? 'Ethereum Mainnet' : `Chain ${chainId}`;
-        warning(`You're on ${currentNetworkName}. Please switch to Base Mainnet.`);
+        warning(`You're on ${currentNetworkName}. Please switch to Base Sepolia or Base Mainnet.`);
         
         // Small delay before triggering network switch popup
         await new Promise(r => setTimeout(r, 300));
@@ -232,7 +240,7 @@ function App() {
         try {
           // Trigger network switch popup
           info('Opening wallet to switch network...');
-          await switchNetwork(BASE_MAINNET_CHAIN_ID);
+          await switchNetwork(BASE_SEPOLIA_CHAIN_ID);
           // After successful switch, re-get the provider
           const newProvider = await getSafeBaseProvider();
           await contractService.initialize(newProvider);
@@ -292,12 +300,14 @@ function App() {
       console.log(`Current chain: ${currentChain}`);
       
       if (currentChain === targetChainId) {
-        info('Already on Base Mainnet');
+        const networkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
+        info(`Already on ${networkName}`);
         setCurrentChainId(currentChain);
         return;
       }
       
-      info('🔄 Switching to Base Mainnet... Check your wallet!');
+      const targetNetworkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
+      info(`🔄 Switching to ${targetNetworkName}... Check your wallet!`);
       
       try {
         // Use window.ethereum.request directly (not through provider)
@@ -325,13 +335,16 @@ function App() {
           setCurrentChainId(targetChainId);
           await contractService.reinitialize();
           
-          success('✅ Switched to Base Mainnet!');
+          const networkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
+          success(`✅ Switched to ${networkName}!`);
           
           if (account && isContractDeployed()) {
             await loadData();
           }
         } else {
-          warning(`You're on Chain ${actualChainId}. The switch may not have completed. Try again.`);
+          const actualNetworkName = actualChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 
+                                    actualChainId === BASE_SEPOLIA_CHAIN_ID ? 'Base Sepolia' : `Chain ${actualChainId}`;
+          warning(`You're on ${actualNetworkName}. The switch may not have completed. Try again.`);
           setCurrentChainId(actualChainId);
         }
       } catch (switchError: any) {
@@ -395,17 +408,31 @@ function App() {
   };
 
   const getNetworkParams = (chainId: number) => {
-    return {
-      chainId: '0x2105',
-      chainName: 'Base Mainnet',
-      nativeCurrency: {
-        name: 'Ether',
-        symbol: 'ETH',
-        decimals: 18,
-      },
-      rpcUrls: ['https://mainnet.base.org'],
-      blockExplorerUrls: ['https://basescan.org'],
-    };
+    if (chainId === BASE_MAINNET_CHAIN_ID) {
+      return {
+        chainId: '0x2105',
+        chainName: 'Base Mainnet',
+        nativeCurrency: {
+          name: 'Ether',
+          symbol: 'ETH',
+          decimals: 18,
+        },
+        rpcUrls: ['https://mainnet.base.org'],
+        blockExplorerUrls: ['https://basescan.org'],
+      };
+    } else {
+      return {
+        chainId: '0x14a34',
+        chainName: 'Base Sepolia',
+        nativeCurrency: {
+          name: 'Ether',
+          symbol: 'ETH',
+          decimals: 18,
+        },
+        rpcUrls: ['https://sepolia.base.org'],
+        blockExplorerUrls: ['https://sepolia.basescan.org'],
+      };
+    }
   };
 
   const handleAccountsChanged = async (accounts: string[]) => {
@@ -445,9 +472,10 @@ function App() {
       
       console.log('Network changed to chain ID:', newChainId);
       
-      // Check if it's a supported network (Base Mainnet only)
-      if (newChainId === BASE_MAINNET_CHAIN_ID) {
-        info('Network changed to Base Mainnet');
+      // Check if it's a supported network
+      if (newChainId === BASE_SEPOLIA_CHAIN_ID || newChainId === BASE_MAINNET_CHAIN_ID) {
+        const networkName = newChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
+        info(`Network changed to ${networkName}`);
         
         // Force update the state
         setCurrentChainId(newChainId);
@@ -461,10 +489,10 @@ function App() {
           await loadData();
         }
         
-        success('Now on Base Mainnet');
+        success(`Now on ${networkName}`);
       } else {
         // Unsupported network - disconnect
-        warning(`Unsupported network (chain ${newChainId}). Please switch to Base Mainnet.`);
+        warning(`Unsupported network (chain ${newChainId}). Please switch to Base Sepolia or Base Mainnet.`);
         disconnectWallet();
       }
     } catch (err) {
@@ -502,7 +530,7 @@ function App() {
       // Check for rate limiting (429 Too Many Requests)
       if (err.message?.includes('429') || err.message?.toLowerCase().includes('too many requests')) {
         warning('Rate limit reached. Slowing down data refresh. Consider using a custom RPC endpoint.');
-        console.warn('💡 To avoid rate limits, add custom RPC URL to .env.local:\nVITE_BASE_MAINNET_RPC=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY');
+        console.warn('💡 To avoid rate limits, add custom RPC URLs to .env.local:\nVITE_BASE_SEPOLIA_RPC=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY\nVITE_BASE_MAINNET_RPC=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY');
         return;
       }
       
@@ -617,6 +645,7 @@ function App() {
       <Header 
         account={account} 
         currentChainId={currentChainId}
+        onNetworkSwitch={switchNetwork}
         onDisconnect={disconnectWallet}
       />
       

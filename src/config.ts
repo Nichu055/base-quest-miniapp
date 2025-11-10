@@ -1,11 +1,13 @@
-// TODO: Replace with your actual deployed contract address after running: npx hardhat run scripts/deploy.js --network base-mainnet
-// For testing purposes, using a valid address format (zero address - update after deployment)
-export const CONTRACT_ADDRESS = "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30"; // UPDATE THIS AFTER DEPLOYMENT
+// TODO: Replace with your actual deployed contract address after running deployment script
+// For testing: npx hardhat run scripts/deploy.js --network base-sepolia
+// For production: npx hardhat run scripts/deploy.js --network base-mainnet
+export const CONTRACT_ADDRESS = "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30"; // Your Base Sepolia contract
 
 // Helper to check if contract is deployed
 export const isContractDeployed = () => {
-  return CONTRACT_ADDRESS !== "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30" && 
-         CONTRACT_ADDRESS !== "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30";
+  const address = CONTRACT_ADDRESS as string;
+  return address !== "0x0000000000000000000000000000000000000000" && 
+         address !== "0xYourContractAddressHere";
 };
 
 export const CONTRACT_ABI = [
@@ -148,10 +150,16 @@ export const CONTRACT_ABI = [
   }
 ] as const;
 
+export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_MAINNET_CHAIN_ID = 8453;
 
-// Network configuration
+// Network configurations
 export const NETWORKS = {
+  [BASE_SEPOLIA_CHAIN_ID]: {
+    name: 'Base Sepolia',
+    rpcUrl: 'https://sepolia.base.org',
+    blockExplorer: 'https://sepolia.basescan.org',
+  },
   [BASE_MAINNET_CHAIN_ID]: {
     name: 'Base Mainnet',
     rpcUrl: 'https://mainnet.base.org',

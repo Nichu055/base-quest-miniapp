@@ -3,10 +3,11 @@ import NetworkSwitcher from './NetworkSwitcher';
 interface HeaderProps {
   account: string;
   currentChainId: number;
+  onNetworkSwitch: (chainId: number) => void;
   onDisconnect: () => void;
 }
 
-function Header({ account, currentChainId, onDisconnect }: HeaderProps) {
+function Header({ account, currentChainId, onNetworkSwitch, onDisconnect }: HeaderProps) {
   const shortAddress = `${account.slice(0, 6)}...${account.slice(-4)}`;
 
   return (
@@ -14,7 +15,10 @@ function Header({ account, currentChainId, onDisconnect }: HeaderProps) {
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold gradient-text">⚡ Base Quest</h1>
         <div className="flex items-center gap-2">
-          <NetworkSwitcher currentChainId={currentChainId} />
+          <NetworkSwitcher 
+            currentChainId={currentChainId}
+            onNetworkSwitch={onNetworkSwitch}
+          />
           <div className="flex items-center gap-2 bg-surface-light px-3 py-2 rounded-lg border border-border text-xs font-medium">
             <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
             {shortAddress}
