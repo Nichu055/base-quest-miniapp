@@ -2,16 +2,14 @@ import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther, Js
 import type { Eip1193Provider } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI, BASE_MAINNET_CHAIN_ID } from './config';
 
-// Create a static JSON RPC provider for Base Sepolia that has ENS explicitly disabled
+// Create a static JSON RPC provider for Base Mainnet that has ENS explicitly disabled
 const createStaticProvider = (chainId: number): JsonRpcProvider => {
-  const rpcUrl = chainId === BASE_MAINNET_CHAIN_ID 
-    ? 'https://mainnet.base.org' 
-    : 'https://sepolia.base.org';
+  const rpcUrl = 'https://mainnet.base.org';
   
   // Create provider with network that has NO ENS support
   return new JsonRpcProvider(rpcUrl, {
     chainId,
-    name: chainId === BASE_MAINNET_CHAIN_ID ? 'base' : 'base-sepolia',
+    name: 'base',
     ensAddress: undefined // Explicitly disable ENS
   });
 };

@@ -1,4 +1,4 @@
-// TODO: Replace with your actual deployed contract address after running: npx hardhat run scripts/deploy.js --network base-sepolia
+// TODO: Replace with your actual deployed contract address after running: npx hardhat run scripts/deploy.js --network base-mainnet
 // For testing purposes, using a valid address format (zero address - update after deployment)
 export const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000"; // UPDATE THIS AFTER DEPLOYMENT
 
@@ -148,16 +148,10 @@ export const CONTRACT_ABI = [
   }
 ] as const;
 
-export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_MAINNET_CHAIN_ID = 8453;
 
-// Network configurations
+// Network configuration
 export const NETWORKS = {
-  [BASE_SEPOLIA_CHAIN_ID]: {
-    name: 'Base Sepolia',
-    rpcUrl: 'https://sepolia.base.org',
-    blockExplorer: 'https://sepolia.basescan.org',
-  },
   [BASE_MAINNET_CHAIN_ID]: {
     name: 'Base Mainnet',
     rpcUrl: 'https://mainnet.base.org',
