@@ -80,15 +80,23 @@ class ContractService {
 
   async initialize(provider: BrowserProvider | JsonRpcProvider) {
     this.provider = provider;
-    // For read-only operations, we can use the provider directly
-    // For write operations, we need a signer from BrowserProvider
-    if (provider instanceof BrowserProvider) {
-      this.signer = await provider.getSigner();
-      this.contract = new Contract(this.contractAddress, CONTRACT_ABI, this.signer);
-    } else {
-      // JsonRpcProvider - read-only mode
+    
+    // ALWAYS use JsonRpcProvider (safe provider) for Base networks
+    // Never use BrowserProvider.getSigner() as it can trigger ENS
+    if (provider instanceof JsonRpcProvider) {
+      // JsonRpcProvider - read-only mode initially
       this.contract = new Contract(this.contractAddress, CONTRACT_ABI, provider);
-      this.signer = null; // Read-only, no signer available
+      this.signer = null; // Will get signer on-demand for transactions
+    } else {
+      // This path should never be hit if using getSafeBaseProvider correctly
+      // But kept for safety - convert to safe provider
+      console.warn('BrowserProvider passed to initialize - converting to safe provider');
+      const network = await provider.getNetwork();
+      const chainId = Number(network.chainId);
+      const safeProvider = createStaticProvider(chainId);
+      this.provider = safeProvider;
+      this.contract = new Contract(this.contractAddress, CONTRACT_ABI, safeProvider);
+      this.signer = null;
     }
   }
 
