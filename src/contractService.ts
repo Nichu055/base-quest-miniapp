@@ -1,16 +1,39 @@
-import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther, JsonRpcSigner } from 'ethers';
+import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther, JsonRpcSigner, getAddress } from 'ethers';
 import type { Eip1193Provider } from 'ethers';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from './config';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, BASE_MAINNET_CHAIN_ID } from './config';
 
-// Safe signer getter that avoids ENS lookups
+// Create a static JSON RPC provider for Base Sepolia that has ENS explicitly disabled
+const createStaticProvider = (chainId: number): JsonRpcProvider => {
+  const rpcUrl = chainId === BASE_MAINNET_CHAIN_ID 
+    ? 'https://mainnet.base.org' 
+    : 'https://sepolia.base.org';
+  
+  // Create provider with network that has NO ENS support
+  return new JsonRpcProvider(rpcUrl, {
+    chainId,
+    name: chainId === BASE_MAINNET_CHAIN_ID ? 'base' : 'base-sepolia',
+    ensAddress: undefined // Explicitly disable ENS
+  });
+};
+
+// Safe signer getter that uses a provider with ENS disabled
 const getSafeSigner = async (): Promise<JsonRpcSigner> => {
   if (!window.ethereum) throw new Error('No wallet detected');
   
-  // Get signer from browser provider
-  // Note: getSigner() itself doesn't trigger ENS, only when you call getAddress() on the signer
+  // Get the current chain ID
   const tempProvider = new BrowserProvider(window.ethereum as Eip1193Provider);
-  const signer = await tempProvider.getSigner();
-  return signer;
+  const network = await tempProvider.getNetwork();
+  const chainId = Number(network.chainId);
+  
+  // Create a static provider with ENS disabled
+  const staticProvider = createStaticProvider(chainId);
+  
+  // Get signer from ethereum but connect it to our static provider
+  const accounts = await tempProvider.send('eth_requestAccounts', []);
+  const signerAddress = accounts[0];
+  
+  // Create signer manually with the static provider
+  return staticProvider.getSigner(signerAddress) as Promise<JsonRpcSigner>;
 };
 
 export interface PlayerData {
@@ -40,6 +63,16 @@ class ContractService {
   private contract: Contract | null = null;
   private signer: JsonRpcSigner | null = null;
   private provider: BrowserProvider | JsonRpcProvider | null = null;
+  private contractAddress: string;
+
+  constructor() {
+    // Ensure contract address is checksummed and valid
+    try {
+      this.contractAddress = getAddress(CONTRACT_ADDRESS);
+    } catch {
+      this.contractAddress = CONTRACT_ADDRESS;
+    }
+  }
 
   isInitialized(): boolean {
     return this.contract !== null && this.provider !== null;
@@ -51,10 +84,10 @@ class ContractService {
     // For write operations, we need a signer from BrowserProvider
     if (provider instanceof BrowserProvider) {
       this.signer = await provider.getSigner();
-      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+      this.contract = new Contract(this.contractAddress, CONTRACT_ABI, this.signer);
     } else {
       // JsonRpcProvider - read-only mode
-      this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+      this.contract = new Contract(this.contractAddress, CONTRACT_ABI, provider);
       this.signer = null; // Read-only, no signer available
     }
   }
@@ -77,7 +110,7 @@ class ContractService {
     if (!this.signer && window.ethereum) {
       try {
         this.signer = await getSafeSigner();
-        this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+        this.contract = new Contract(this.contractAddress, CONTRACT_ABI, this.signer);
       } catch (err) {
         console.error('Failed to get signer:', err);
         throw new Error('Please connect your wallet to perform transactions');
@@ -97,7 +130,7 @@ class ContractService {
     if (!this.signer && window.ethereum) {
       try {
         this.signer = await getSafeSigner();
-        this.contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+        this.contract = new Contract(this.contractAddress, CONTRACT_ABI, this.signer);
       } catch (err) {
         console.error('Failed to get signer:', err);
         throw new Error('Please connect your wallet to perform transactions');
