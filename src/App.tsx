@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { BrowserProvider, JsonRpcProvider } from 'ethers';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { contractService, type PlayerData, type Task, type LeaderboardEntry } from './contractService';
-import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID } from './config';
+import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID, isContractDeployed } from './config';
 import { useToast } from './hooks/useToast';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 
@@ -108,9 +108,14 @@ function App() {
 
   useEffect(() => {
     if (connected && account) {
-      loadData();
-      const interval = setInterval(loadData, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
+      // Only load data if contract is deployed
+      if (isContractDeployed()) {
+        loadData();
+        const interval = setInterval(loadData, 30000); // Refresh every 30 seconds
+        return () => clearInterval(interval);
+      } else {
+        warning('Contract not deployed. Please deploy the contract and update CONTRACT_ADDRESS in config.ts');
+      }
     }
   }, [connected, account]);
 
@@ -201,18 +206,25 @@ function App() {
       
       // Check if connected to a supported network
       if (chainId !== BASE_SEPOLIA_CHAIN_ID && chainId !== BASE_MAINNET_CHAIN_ID) {
-        warning('Please switch to Base Sepolia or Base Mainnet');
+        warning(`Please switch to Base Sepolia or Base Mainnet. Currently on chain ${chainId}`);
         try {
+          // Trigger network switch popup
+          info('Requesting network switch. Please approve in your wallet...');
           await switchNetwork(BASE_SEPOLIA_CHAIN_ID);
+          // After successful switch, re-get the provider
+          const newProvider = await getSafeBaseProvider();
+          await contractService.initialize(newProvider);
         } catch (err) {
+          error('Failed to switch network. Please switch manually in your wallet.');
           return;
         }
+      } else {
+        // Already on correct network
+        await contractService.initialize(provider);
       }
 
       // Get address directly from accounts array to avoid ENS lookup
       const address = accounts[0];
-      
-      await contractService.initialize(provider);
       
       setAccount(address);
       setCurrentChainId(chainId);
@@ -393,16 +405,26 @@ function App() {
       setCurrentWeek(week);
     } catch (err: any) {
       console.error('Failed to load data:', err);
+      
+      // Check if it's a zero address / contract not deployed error
+      if (err.code === 'CALL_EXCEPTION' && err.message?.includes('missing revert data')) {
+        warning('Contract not deployed yet. Please deploy the contract first.');
+        console.warn('Contract address is likely the zero address or invalid.');
+        return;
+      }
+      
       // Check if it's an ENS error - just warn, don't disconnect
       if (err.message?.includes('network does not support ENS')) {
         console.warn('ENS not supported on Base — skipping lookup.');
         return;
       }
+      
       // Check if it's a connection issue
       if (err.message?.includes('Please connect your wallet')) {
         error('Connection lost. Please reconnect your wallet.');
         disconnectWallet();
-      } else {
+      } else if (!err.message?.includes('missing revert data')) {
+        // Don't show error for contract deployment issues (already warned above)
         error('Failed to load data. Please try again.');
       }
     }

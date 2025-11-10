@@ -2,6 +2,12 @@
 // For testing purposes, using a valid address format (zero address - update after deployment)
 export const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000"; // UPDATE THIS AFTER DEPLOYMENT
 
+// Helper to check if contract is deployed
+export const isContractDeployed = () => {
+  return CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && 
+         CONTRACT_ADDRESS !== "0xYourContractAddressHere";
+};
+
 export const CONTRACT_ABI = [
   {
     "inputs": [
