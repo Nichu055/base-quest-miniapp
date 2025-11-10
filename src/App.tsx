@@ -246,6 +246,7 @@ function App() {
       const chainIdHex = `0x${targetChainId.toString(16)}`;
       
       try {
+        // Request network switch - this triggers MetaMask popup
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: chainIdHex }],
@@ -262,10 +263,11 @@ function App() {
           await loadData();
         }
       } catch (switchError: any) {
-        // This error code indicates that the chain has not been added to MetaMask
+        // Error code 4902: Network not added to wallet yet
         if (switchError.code === 4902) {
           const networkParams = getNetworkParams(targetChainId);
           try {
+            // Add network to wallet - this triggers MetaMask popup to add & switch
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [networkParams],
@@ -273,10 +275,26 @@ function App() {
             setCurrentChainId(targetChainId);
             await contractService.reinitialize();
             success(`Added and switched to ${networkParams.chainName}`);
+            
+            // Reload data after adding network
+            if (account) {
+              await loadData();
+            }
           } catch (addError: any) {
-            error('Failed to add network to wallet');
+            if (addError.code === 4001) {
+              // User rejected adding network
+              info('Network addition cancelled');
+            } else {
+              error('Failed to add network to wallet');
+            }
             throw addError;
           }
+        } else if (switchError.code === 4001) {
+          // User rejected the network switch
+          info('Network switch cancelled');
+        } else if (switchError.code === -32002) {
+          // Request already pending
+          warning('Network switch request already pending. Please check your wallet.');
         } else {
           error(switchError.message || 'Failed to switch network');
           throw switchError;
@@ -284,7 +302,10 @@ function App() {
       }
     } catch (err: any) {
       console.error('Network switch error:', err);
-      error(err.message || 'Failed to switch network');
+      // Only show error if not already handled above
+      if (err.code !== 4001 && err.code !== -32002) {
+        error(err.message || 'Failed to switch network');
+      }
     }
   };
 
