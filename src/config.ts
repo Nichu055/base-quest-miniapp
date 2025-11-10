@@ -1,11 +1,11 @@
 // TODO: Replace with your actual deployed contract address after running: npx hardhat run scripts/deploy.js --network base-mainnet
 // For testing purposes, using a valid address format (zero address - update after deployment)
-export const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000"; // UPDATE THIS AFTER DEPLOYMENT
+export const CONTRACT_ADDRESS = "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30"; // UPDATE THIS AFTER DEPLOYMENT
 
 // Helper to check if contract is deployed
 export const isContractDeployed = () => {
-  return CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && 
-         CONTRACT_ADDRESS !== "0xYourContractAddressHere";
+  return CONTRACT_ADDRESS !== "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30" && 
+         CONTRACT_ADDRESS !== "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30";
 };
 
 export const CONTRACT_ABI = [
