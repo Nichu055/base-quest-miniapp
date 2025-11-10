@@ -56,11 +56,43 @@ function App() {
   const [activeTab, setActiveTab] = useState<'quests' | 'leaderboard'>('quests');
   const { toasts, removeToast, success, error, warning, info } = useToast();
 
+  // Wallet disconnect handler (needs to be defined before handleIdle)
+  const disconnectWallet = useCallback(() => {
+    try {
+      // Remove event listeners
+      if (window.ethereum?.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+      
+      // Disconnect contract service
+      contractService.disconnect();
+      
+      // Clear all state
+      setConnected(false);
+      setAccount('');
+      setPlayerData(null);
+      setTasks([]);
+      setLeaderboard([]);
+      setEntryFee('0');
+      setPrizePool('0');
+      setCurrentWeek(0);
+      
+      // Clear session storage
+      sessionStorage.removeItem('walletConnected');
+      
+      info('Wallet disconnected');
+    } catch (err: any) {
+      console.error('Failed to disconnect:', err);
+      error('Failed to disconnect wallet');
+    }
+  }, [info, error]);
+
   // Idle timeout handler
   const handleIdle = useCallback(() => {
     info('Session expired due to inactivity');
     disconnectWallet();
-  }, []);
+  }, [info, disconnectWallet]);
 
   // 30-minute idle timeout
   const { updateActivity } = useIdleTimeout({
@@ -201,28 +233,6 @@ function App() {
       } else {
         error(err.message || 'Failed to connect wallet. Please try again.');
       }
-    }
-  };
-
-  const disconnectWallet = () => {
-    try {
-      // Remove event listeners
-      if (window.ethereum?.removeListener) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
-      }
-      
-      contractService.disconnect();
-      setConnected(false);
-      setAccount('');
-      setPlayerData(null);
-      setTasks([]);
-      setLeaderboard([]);
-      sessionStorage.removeItem('walletConnected');
-      info('Wallet disconnected');
-    } catch (err: any) {
-      console.error('Failed to disconnect:', err);
-      error('Failed to disconnect wallet');
     }
   };
 
