@@ -27,9 +27,15 @@ function NetworkSwitcher({ currentChainId, onNetworkSwitch }: NetworkSwitcherPro
     setIsOpen(false);
     
     try {
+      // Call the network switch function
       await onNetworkSwitch(networkId);
+    } catch (error) {
+      console.error('Network switch error in component:', error);
     } finally {
-      setIsSwitching(false);
+      // Add delay before re-enabling to prevent rapid clicking
+      setTimeout(() => {
+        setIsSwitching(false);
+      }, 2000);
     }
   };
 
