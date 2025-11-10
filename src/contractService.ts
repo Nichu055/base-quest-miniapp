@@ -16,24 +16,20 @@ const createStaticProvider = (chainId: number): JsonRpcProvider => {
   });
 };
 
-// Safe signer getter that uses a provider with ENS disabled
+// Safe signer getter - uses wallet signer but wraps contract creation to prevent ENS
 const getSafeSigner = async (): Promise<JsonRpcSigner> => {
   if (!window.ethereum) throw new Error('No wallet detected');
   
-  // Get the current chain ID
-  const tempProvider = new BrowserProvider(window.ethereum as Eip1193Provider);
-  const network = await tempProvider.getNetwork();
-  const chainId = Number(network.chainId);
+  // Get the current chain ID and accounts
+  const browserProvider = new BrowserProvider(window.ethereum as Eip1193Provider);
+  const accounts = await browserProvider.send('eth_accounts', []);
+  if (!accounts || accounts.length === 0) {
+    throw new Error('No accounts found. Please connect your wallet.');
+  }
   
-  // Create a static provider with ENS disabled
-  const staticProvider = createStaticProvider(chainId);
-  
-  // Get signer from ethereum but connect it to our static provider
-  const accounts = await tempProvider.send('eth_requestAccounts', []);
-  const signerAddress = accounts[0];
-  
-  // Create signer manually with the static provider
-  return staticProvider.getSigner(signerAddress) as Promise<JsonRpcSigner>;
+  // Get wallet signer from browser provider
+  // The key is to use a checksummed address and never let Contract resolve addresses
+  return await browserProvider.getSigner(accounts[0]);
 };
 
 export interface PlayerData {
@@ -67,10 +63,20 @@ class ContractService {
 
   constructor() {
     // Ensure contract address is checksummed and valid
+    const address = CONTRACT_ADDRESS as string;
     try {
-      this.contractAddress = getAddress(CONTRACT_ADDRESS);
-    } catch {
-      this.contractAddress = CONTRACT_ADDRESS;
+      // Validate that CONTRACT_ADDRESS is not the placeholder
+      if (address === '0xYourContractAddressHere' || !address.startsWith('0x') || address.length !== 42) {
+        throw new Error('Invalid contract address. Please update CONTRACT_ADDRESS in config.ts with your deployed contract address.');
+      }
+      this.contractAddress = getAddress(address);
+    } catch (err: any) {
+      console.error('Contract address error:', err.message);
+      // Show helpful error message
+      if (err.message.includes('Invalid contract address')) {
+        throw err;
+      }
+      throw new Error('Invalid contract address format. Please use a valid Ethereum address.');
     }
   }
 
@@ -118,6 +124,8 @@ class ContractService {
     if (!this.signer && window.ethereum) {
       try {
         this.signer = await getSafeSigner();
+        // CRITICAL: Pass already-resolved checksummed address to prevent ENS lookup
+        // Contract constructor will try to resolve addresses, so we ensure it's already resolved
         this.contract = new Contract(this.contractAddress, CONTRACT_ABI, this.signer);
       } catch (err) {
         console.error('Failed to get signer:', err);
@@ -127,6 +135,7 @@ class ContractService {
     
     if (!this.signer) throw new Error('Please connect your wallet to perform transactions');
     
+    // Use method directly without awaiting getAddress() which could trigger ENS
     const tx = await this.contract!.joinWeek({ value: parseEther(entryFee) });
     return await tx.wait();
   }
@@ -138,6 +147,7 @@ class ContractService {
     if (!this.signer && window.ethereum) {
       try {
         this.signer = await getSafeSigner();
+        // CRITICAL: Pass already-resolved checksummed address to prevent ENS lookup
         this.contract = new Contract(this.contractAddress, CONTRACT_ABI, this.signer);
       } catch (err) {
         console.error('Failed to get signer:', err);
