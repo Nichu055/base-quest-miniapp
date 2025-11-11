@@ -204,17 +204,32 @@ class ContractService {
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
-    const [addresses, streaks, points] = await this.contract!.getLeaderboard();
-    
-    return addresses.map((addr: string, i: number) => ({
-      address: addr,
-      streak: Number(streaks[i]),
-      points: Number(points[i]),
-    })).sort((a: LeaderboardEntry, b: LeaderboardEntry) => {
-      const scoreA = a.streak + a.points;
-      const scoreB = b.streak + b.points;
-      return scoreB - scoreA;
-    });
+    try {
+      const [addresses, streaks, points] = await this.contract!.getLeaderboard();
+      
+      // Handle empty leaderboard
+      if (!addresses || addresses.length === 0) {
+        console.info('Leaderboard is empty - no players yet');
+        return [];
+      }
+      
+      return addresses.map((addr: string, i: number) => ({
+        address: addr,
+        streak: Number(streaks[i]),
+        points: Number(points[i]),
+      })).sort((a: LeaderboardEntry, b: LeaderboardEntry) => {
+        const scoreA = a.streak + a.points;
+        const scoreB = b.streak + b.points;
+        return scoreB - scoreA;
+      });
+    } catch (err: any) {
+      // Handle BAD_DATA error (empty leaderboard)
+      if (err.code === 'BAD_DATA' || err.message?.includes('could not decode result data')) {
+        console.info('Leaderboard not initialized yet - returning empty array');
+        return [];
+      }
+      throw err;
+    }
   }
 
   async getEntryFee(): Promise<string> {

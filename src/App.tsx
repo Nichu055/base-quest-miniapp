@@ -529,7 +529,7 @@ function App() {
       const [playerInfo, weekTasks, board, fee, pool, week] = await Promise.all([
         contractService.getPlayerData(account),
         contractService.getCurrentWeekTasks().catch(() => []), // Gracefully handle empty tasks
-        contractService.getLeaderboard(),
+        contractService.getLeaderboard().catch(() => []), // Gracefully handle empty leaderboard
         contractService.getEntryFee(),
         contractService.getWeeklyPrizePool(),
         contractService.getCurrentWeek(),
@@ -544,7 +544,12 @@ function App() {
       
       // Show info if no tasks available
       if (weekTasks.length === 0) {
-        info('No tasks available for the current week yet.');
+        console.info('ℹ️ No tasks available for the current week yet.');
+      }
+      
+      // Show info if leaderboard is empty
+      if (board.length === 0) {
+        console.info('ℹ️ No players on leaderboard yet. Be the first to join!');
       }
     } catch (err: any) {
       console.error('Failed to load data:', err);
