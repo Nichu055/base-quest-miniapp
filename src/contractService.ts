@@ -130,6 +130,8 @@ class ContractService {
   async joinWeek(entryFee: string) {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
     
+    console.log('📝 joinWeek called with fee:', entryFee, 'ETH');
+    
     // Need a signer for transactions
     if (!this.signer && window.ethereum) {
       try {
@@ -145,8 +147,12 @@ class ContractService {
     
     if (!this.signer) throw new Error('Please connect your wallet to perform transactions');
     
+    const feeInWei = parseEther(entryFee);
+    console.log('💸 Sending value (wei):', feeInWei.toString());
+    console.log('💸 Sending value (ETH):', formatEther(feeInWei));
+    
     // Use method directly without awaiting getAddress() which could trigger ENS
-    const tx = await this.contract!.joinWeek({ value: parseEther(entryFee) });
+    const tx = await this.contract!.joinWeek({ value: feeInWei });
     return await tx.wait();
   }
 
@@ -244,8 +250,17 @@ class ContractService {
 
   async getEntryFee(): Promise<string> {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
-    const fee = await this.contract!.entryFee();
-    return formatEther(fee);
+    try {
+      const fee = await this.contract!.entryFee();
+      const feeInEth = formatEther(fee);
+      console.log('📊 Contract entry fee (wei):', fee.toString());
+      console.log('📊 Contract entry fee (ETH):', feeInEth);
+      return feeInEth;
+    } catch (err) {
+      console.error('Failed to get entry fee:', err);
+      // Default to contract's default value if call fails
+      return '0.00001';
+    }
   }
 
   async getCurrentWeek(): Promise<number> {

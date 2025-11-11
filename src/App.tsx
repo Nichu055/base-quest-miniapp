@@ -543,7 +543,9 @@ function App() {
       setPlayerData(playerInfo);
       setTasks(weekTasks);
       setLeaderboard(board);
-      setEntryFee(fee);
+      // If entry fee is 0 or empty, use default contract value
+      const actualFee = fee === '0.0' || fee === '0' || !fee ? '0.00001' : fee;
+      setEntryFee(actualFee);
       setPrizePool(pool);
       setCurrentWeek(week);
       
@@ -601,6 +603,7 @@ function App() {
     
     try {
       setLoading(true);
+      console.log('💰 Joining week with entry fee:', entryFee, 'ETH');
       await contractService.joinWeek(entryFee);
       await loadData();
       success('Successfully joined this week! Start completing tasks to build your streak.');
@@ -608,6 +611,8 @@ function App() {
       console.error('Failed to join week:', err);
       if (err.message?.includes('user rejected')) {
         info('Transaction cancelled');
+      } else if (err.message?.includes('Insufficient entry fee')) {
+        error(`Entry fee required: ${entryFee} ETH. Please make sure you have enough ETH in your wallet.`);
       } else {
         error(err.message || 'Failed to join week. Please try again.');
       }
