@@ -2,7 +2,7 @@ const hre = require("hardhat");
 
 async function main() {
   // Replace with your deployed contract address
-  const CONTRACT_ADDRESS = "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30";
+  const CONTRACT_ADDRESS = "0xAA4c50b0023530432EEe23F8c6d29756b5a317dc";
 
   console.log("Adding tasks to current week...");
 
