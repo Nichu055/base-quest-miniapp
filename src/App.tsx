@@ -194,28 +194,37 @@ function App() {
   };
 
   const connectWallet = async () => {
+    console.log('🔵 Connect Wallet button clicked');
+    console.log('🔍 Checking window.ethereum:', window.ethereum ? 'Found' : 'Not found');
+    
     try {
       if (!window.ethereum) {
+        console.error('❌ No wallet detected');
         error('Please install MetaMask or use a Web3-enabled browser');
         return;
       }
 
       const walletInfo: any = window.ethereum;
-      console.log('Wallet detected:', {
+      console.log('✅ Wallet detected:', {
         isMetaMask: walletInfo?.isMetaMask,
         isCoinbaseWallet: walletInfo?.isCoinbaseWallet,
         provider: walletInfo?.constructor?.name
       });
 
+      setLoading(true);
+      console.log('⏳ Loading state set to true');
+
       // 1️⃣ FIRST: Request accounts using BrowserProvider to trigger popup
       const browserProvider = new BrowserProvider(window.ethereum);
-      console.log('Requesting accounts - popup should appear now...');
+      console.log('🔑 Requesting accounts - popup should appear now...');
       
       const accounts = await browserProvider.send('eth_requestAccounts', []);
-      console.log('Accounts received:', accounts);
+      console.log('📝 Accounts received:', accounts);
       
       if (!accounts || accounts.length === 0) {
+        console.error('❌ No accounts found');
         error('No accounts found. Please unlock your wallet.');
+        setLoading(false);
         return;
       }
       
@@ -227,11 +236,12 @@ function App() {
       const network = await provider.getNetwork();
       const chainId = Number(network.chainId);
       
-      console.log('Current network:', { chainId, name: network.name });
+      console.log('🌐 Current network:', { chainId, name: network.name });
       
       // Check if connected to a supported network
       if (chainId !== BASE_SEPOLIA_CHAIN_ID && chainId !== BASE_MAINNET_CHAIN_ID) {
         const currentNetworkName = chainId === 1 ? 'Ethereum Mainnet' : `Chain ${chainId}`;
+        console.warn(`⚠️ Wrong network: ${currentNetworkName}`);
         warning(`You're on ${currentNetworkName}. Please switch to Base Sepolia or Base Mainnet.`);
         
         // Small delay before triggering network switch popup
@@ -245,11 +255,14 @@ function App() {
           const newProvider = await getSafeBaseProvider();
           await contractService.initialize(newProvider);
         } catch (err) {
+          console.error('❌ Failed to switch network:', err);
           error('Failed to switch network. Please switch manually in your wallet.');
+          setLoading(false);
           return;
         }
       } else {
         // Already on correct network
+        console.log('✅ On correct network, initializing contract...');
         await contractService.initialize(provider);
       }
 
@@ -261,6 +274,7 @@ function App() {
       setConnected(true);
       updateActivity(); // Initialize activity tracking
       sessionStorage.setItem('walletConnected', 'true');
+      console.log('✅ Connected successfully:', address);
       success(`Connected to ${address.slice(0, 6)}...${address.slice(-4)}`);
       
       // Listen for account changes
@@ -269,7 +283,7 @@ function App() {
         window.ethereum.on('chainChanged', handleChainChanged);
       }
     } catch (err: any) {
-      console.error('Failed to connect wallet:', err);
+      console.error('❌ Failed to connect wallet:', err);
       if (err.code === 4001) {
         info('Connection request rejected');
       } else if (err.code === -32002) {
@@ -277,6 +291,9 @@ function App() {
       } else {
         error(err.message || 'Failed to connect wallet. Please try again.');
       }
+    } finally {
+      setLoading(false);
+      console.log('⏳ Loading state set to false');
     }
   };
 
