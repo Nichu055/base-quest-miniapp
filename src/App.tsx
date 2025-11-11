@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { BrowserProvider, JsonRpcProvider } from 'ethers';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { contractService, type PlayerData, type Task, type LeaderboardEntry } from './contractService';
-import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID, isContractDeployed } from './config';
+import { BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID, isContractDeployed, isContractOnNetwork } from './config';
 import { useToast } from './hooks/useToast';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 
@@ -116,18 +116,18 @@ function App() {
 
   useEffect(() => {
     if (connected && account) {
-      // Only load data if contract is deployed
-      if (isContractDeployed()) {
-        loadData();
-        // Reduce polling to 2 minutes to avoid rate limiting
-        // 120000ms = 2 minutes (was 30s which caused 429 errors)
-        const interval = setInterval(loadData, 120000);
-        return () => clearInterval(interval);
-      } else {
-        warning('Contract not deployed. Please deploy the contract and update CONTRACT_ADDRESS in config.ts');
+      // Check if contract is deployed on current network
+      if (!isContractOnNetwork(currentChainId)) {
+        warning(`Contract only deployed on Base Sepolia. Please switch to Base Sepolia network.`);
+        return;
       }
+      
+      loadData();
+      // Reduce polling to 2 minutes to avoid rate limiting
+      const interval = setInterval(loadData, 120000);
+      return () => clearInterval(interval);
     }
-  }, [connected, account]);
+  }, [connected, account, currentChainId]);
 
   // Auto-redirect if wallet connection is lost
   useEffect(() => {
@@ -681,66 +681,92 @@ function App() {
       />
       
       <div className="flex-1 overflow-y-auto px-5 pb-5">
-        <WeeklyTimer 
-          currentWeek={currentWeek} 
-          prizePool={prizePool}
-          isConnected={connected}
-        />
-
-        {!playerData?.activeThisWeek ? (
+        {!isContractOnNetwork(currentChainId) ? (
           <div className="card p-8 text-center my-6">
-            <h2 className="text-2xl mb-3">Join Week {currentWeek}</h2>
-            <p>Entry Fee: {entryFee} ETH</p>
-            <p className="text-text-secondary my-2">
-              Join this week's challenge to start completing quests and earning rewards!
+            <div className="mb-4 flex justify-center">
+              <img src="/logo.svg" alt="Base Quest" className="w-16 h-16 opacity-50" />
+            </div>
+            <h2 className="text-2xl mb-3">Wrong Network</h2>
+            <p className="text-text-secondary mb-4">
+              Contract is only deployed on Base Sepolia testnet.
             </p>
+            <div className="bg-surface-light rounded-xl p-4 text-left text-sm mb-4">
+              <p className="text-text-secondary mb-2">📡 Please switch to:</p>
+              <div className="bg-surface px-3 py-2 rounded font-mono text-primary">
+                Base Sepolia (Chain ID: 84532)
+              </div>
+            </div>
             <button 
-              className="btn-primary w-full px-8 py-4 text-lg font-bold mt-6" 
-              onClick={handleJoinWeek}
-              disabled={loading}
+              className="btn-primary w-full px-8 py-4 text-lg font-bold" 
+              onClick={() => switchNetwork(BASE_SEPOLIA_CHAIN_ID)}
             >
-              {loading ? 'Joining...' : 'Join This Week'}
+              Switch to Base Sepolia
             </button>
           </div>
         ) : (
           <>
-            <PlayerStats playerData={playerData} account={account} />
+            <WeeklyTimer 
+              currentWeek={currentWeek} 
+              prizePool={prizePool}
+              isConnected={connected}
+            />
 
-            <div className="flex gap-2 bg-surface border border-border rounded-xl p-1 my-6 mt-6 mb-4">
-              <button 
-                className={`flex-1 p-3 bg-transparent border-0 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  activeTab === 'quests' 
-                    ? 'bg-primary text-white shadow-[0_2px_8px_rgba(0,82,255,0.3)]' 
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-                onClick={() => setActiveTab('quests')}
-              >
-                Daily Quests
-              </button>
-              <button 
-                className={`flex-1 p-3 bg-transparent border-0 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  activeTab === 'leaderboard' 
-                    ? 'bg-primary text-white shadow-[0_2px_8px_rgba(0,82,255,0.3)]' 
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-                onClick={() => setActiveTab('leaderboard')}
-              >
-                Leaderboard
-              </button>
-            </div>
-
-            {activeTab === 'quests' ? (
-              <TaskList 
-                tasks={tasks}
-                playerData={playerData}
-                onCompleteTask={handleCompleteTask}
-                loading={loading}
-              />
+            {!playerData?.activeThisWeek ? (
+              <div className="card p-8 text-center my-6">
+                <h2 className="text-2xl mb-3">Join Week {currentWeek}</h2>
+                <p>Entry Fee: {entryFee} ETH</p>
+                <p className="text-text-secondary my-2">
+                  Join this week's challenge to start completing quests and earning rewards!
+                </p>
+                <button 
+                  className="btn-primary w-full px-8 py-4 text-lg font-bold mt-6" 
+                  onClick={handleJoinWeek}
+                  disabled={loading}
+                >
+                  {loading ? 'Joining...' : 'Join This Week'}
+                </button>
+              </div>
             ) : (
-              <Leaderboard 
-                leaderboard={leaderboard}
-                currentAccount={account}
-              />
+              <>
+                <PlayerStats playerData={playerData} account={account} />
+
+                <div className="flex gap-2 bg-surface border border-border rounded-xl p-1 my-6 mt-6 mb-4">
+                  <button 
+                    className={`flex-1 p-3 bg-transparent border-0 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                      activeTab === 'quests' 
+                        ? 'bg-primary text-white shadow-[0_2px_8px_rgba(0,82,255,0.3)]' 
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                    onClick={() => setActiveTab('quests')}
+                  >
+                    Daily Quests
+                  </button>
+                  <button 
+                    className={`flex-1 p-3 bg-transparent border-0 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                      activeTab === 'leaderboard' 
+                        ? 'bg-primary text-white shadow-[0_2px_8px_rgba(0,82,255,0.3)]' 
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                    onClick={() => setActiveTab('leaderboard')}
+                  >
+                    Leaderboard
+                  </button>
+                </div>
+
+                {activeTab === 'quests' ? (
+                  <TaskList 
+                    tasks={tasks}
+                    playerData={playerData}
+                    onCompleteTask={handleCompleteTask}
+                    loading={loading}
+                  />
+                ) : (
+                  <Leaderboard 
+                    leaderboard={leaderboard}
+                    currentAccount={account}
+                  />
+                )}
+              </>
             )}
           </>
         )}
