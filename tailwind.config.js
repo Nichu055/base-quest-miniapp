@@ -35,6 +35,9 @@ export default {
       minHeight: {
         'miniapp': '695px',
       },
+      height: {
+        'miniapp': '695px',
+      },
       animation: {
         'spin': 'spin 1s linear infinite',
         'pulse': 'pulse 2s ease-in-out infinite',

@@ -617,8 +617,8 @@ function App() {
 
   if (loading && !connected) {
     return (
-      <div className="w-full max-w-miniapp min-h-miniapp mx-auto bg-background relative">
-        <div className="flex flex-col items-center justify-center min-h-miniapp px-10 py-10 gap-5">
+      <div className="w-full max-w-miniapp h-miniapp mx-auto bg-background relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center h-full px-10 py-10 gap-5">
           <div className="spinner"></div>
           <p>Loading Base Quest...</p>
         </div>
@@ -628,8 +628,8 @@ function App() {
 
   if (!connected) {
     return (
-      <div className="w-full max-w-miniapp min-h-miniapp mx-auto bg-background relative">
-        <div className="flex items-center justify-center min-h-miniapp px-10 py-10">
+      <div className="w-full max-w-miniapp h-miniapp mx-auto bg-background relative overflow-hidden">
+        <div className="flex items-center justify-center h-full px-10 py-10">
           <div className="text-center max-w-[360px]">
             <h1 className="gradient-text text-[42px] font-bold mb-2">⚡ Base Quest</h1>
             <p className="text-xl font-semibold text-text-secondary mb-6">The Onchain Streak Game</p>
@@ -646,7 +646,7 @@ function App() {
   }
 
   return (
-    <div className="w-full max-w-miniapp min-h-miniapp mx-auto bg-background relative">
+    <div className="w-full max-w-miniapp h-miniapp mx-auto bg-background relative overflow-hidden flex flex-col">
       <Header 
         account={account} 
         currentChainId={currentChainId}
@@ -654,7 +654,7 @@ function App() {
         onDisconnect={disconnectWallet}
       />
       
-      <div className="px-5 pb-10">
+      <div className="flex-1 overflow-y-auto px-5 pb-5">
         <WeeklyTimer 
           currentWeek={currentWeek} 
           prizePool={prizePool}

@@ -21,12 +21,12 @@
   }
 
   body {
-    @apply m-0 flex items-center min-w-[320px] min-h-screen overflow-x-hidden;
+    @apply m-0 flex items-center min-w-[320px] min-h-screen overflow-hidden;
     background: linear-gradient(135deg, #0A0B0D 0%, #1A1B1F 100%);
   }
 
   #root {
-    @apply w-full max-w-miniapp mx-auto min-h-miniapp;
+    @apply w-full max-w-miniapp mx-auto h-miniapp overflow-hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
