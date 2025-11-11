@@ -93,19 +93,26 @@ class ContractService {
     this.currentChainId = Number(network.chainId);
     const contractAddr = getContractAddress(this.currentChainId);
     
+    console.log('🔗 Initializing contract for chain:', this.currentChainId);
+    console.log('📍 Contract address:', contractAddr);
+    
     // Validate contract address for this network
     if (contractAddr === '0x0000000000000000000000000000000000000000' || contractAddr === '0xYourContractAddressHere') {
       console.warn(`No contract deployed on chain ${this.currentChainId}`);
       this.contractAddress = contractAddr;
-    } else {
-      this.contractAddress = getAddress(contractAddr);
+      // Don't initialize contract if no valid address
+      this.contract = null;
+      return;
     }
+    
+    this.contractAddress = getAddress(contractAddr);
     
     // ALWAYS use JsonRpcProvider (safe provider) for Base networks
     if (provider instanceof JsonRpcProvider) {
       // JsonRpcProvider - read-only mode initially
       this.contract = new Contract(this.contractAddress, CONTRACT_ABI, provider);
       this.signer = null; // Will get signer on-demand for transactions
+      console.log('✅ Contract initialized successfully');
     } else {
       // Convert to safe provider
       console.warn('BrowserProvider passed to initialize - converting to safe provider');
@@ -113,6 +120,7 @@ class ContractService {
       this.provider = safeProvider;
       this.contract = new Contract(this.contractAddress, CONTRACT_ABI, safeProvider);
       this.signer = null;
+      console.log('✅ Contract initialized with safe provider');
     }
   }
 

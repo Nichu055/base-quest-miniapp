@@ -29,10 +29,24 @@ async function main() {
 
   // Deploy contract
   const BaseQuest = await hre.ethers.getContractFactory("BaseQuest");
-  const baseQuest = await BaseQuest.deploy(TREASURY_ADDRESS, ATTESTER_ADDRESS);
+  console.log("Deploying contract...");
+  
+  const baseQuest = await BaseQuest.deploy(TREASURY_ADDRESS, ATTESTER_ADDRESS, {
+    gasLimit: 5000000 // Explicit gas limit for mainnet
+  });
 
+  console.log("Waiting for deployment confirmation...");
   await baseQuest.waitForDeployment();
   const contractAddress = await baseQuest.getAddress();
+  
+  // Verify deployment by checking code
+  const code = await hre.ethers.provider.getCode(contractAddress);
+  if (code === '0x') {
+    throw new Error('Contract deployment failed - no code at address');
+  }
+  
+  console.log("✅ Contract deployed successfully!");
+  console.log("✅ Code size:", code.length, "bytes");
 
   console.log("✅ BaseQuest deployed to:", contractAddress);
   console.log("");
