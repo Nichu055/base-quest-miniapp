@@ -1,7 +1,6 @@
-// TODO: Replace with your actual deployed contract address after running deployment script
-// For testing: npx hardhat run scripts/deploy.js --network base-sepolia
-// For production: npx hardhat run scripts/deploy.js --network base-mainnet
-export const CONTRACT_ADDRESS = "0xc7e96df2912b8b276c1eef41f66ac3d3f69e7c30"; // Your Base Sepolia contract
+// Contract deployed on Base Sepolia
+// Deploy command: npx hardhat run scripts/deploy.cjs --network base-sepolia
+export const CONTRACT_ADDRESS = "0xAA4c50b0023530432EEe23F8c6d29756b5a317dc"; // Base Sepolia deployment
 
 // Helper to check if contract is deployed
 export const isContractDeployed = () => {
