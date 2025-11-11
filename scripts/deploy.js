@@ -3,10 +3,12 @@ const hre = require("hardhat");
 async function main() {
   console.log("🚀 Deploying BaseQuest contract to Base...");
 
-  // CHANGE THESE ADDRESSES BEFORE DEPLOYING TO MAINNET!
-  const TREASURY_ADDRESS = "0x1234567890123456789012345678901234567890"; // CHANGE THIS
-  const ATTESTER_ADDRESS = "0x0987654321098765432109876543210987654321"; // CHANGE THIS
+  // Using deployer address for both treasury and attester (you can change later)
+  const [deployer] = await hre.ethers.getSigners();
+  const TREASURY_ADDRESS = deployer.address; // Where fees will be collected
+  const ATTESTER_ADDRESS = deployer.address; // Who can verify offchain tasks
 
+  console.log("Deploying with account:", deployer.address);
   console.log("Treasury Address:", TREASURY_ADDRESS);
   console.log("Attester Address:", ATTESTER_ADDRESS);
 
