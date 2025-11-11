@@ -91,7 +91,7 @@ out
 
 # Gatsby
 .cache/
-public
+# public
 
 # Serverless
 .serverless/
@@ -111,3 +111,5 @@ public
 # Temporary folders
 tmp/
 temp/
+
+.well-known
