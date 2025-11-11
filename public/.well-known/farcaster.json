@@ -23,7 +23,7 @@
     "tags": ["blockchain", "quest", "streak", "rewards", "base"],
     "heroImageUrl": "https://base-quest-miniapp.vercel.app/og.png",
     "tagline": "Build streaks, earn rewards",
-    "ogTitle": "Base Quest - Onchain Streak Game",
+    "ogTitle": "Base Quest Onchain Streak Game",
     "ogDescription": "Complete daily quests, maintain streaks, and win weekly ETH rewards on Base blockchain",
     "ogImageUrl": "https://base-quest-miniapp.vercel.app/og.png",
     "noindex": false
