@@ -306,16 +306,16 @@ function App() {
       }
 
       const chainIdHex = `0x${targetChainId.toString(16)}`;
-      console.log(`
-=== Network Switch Request ===`);
-      console.log(`Target: ${chainIdHex} (${targetChainId})`);
+      console.log('🔄 Network Switch Request');
+      console.log('Target Chain ID:', targetChainId, 'Hex:', chainIdHex);
+      console.log('Wallet provider:', (window.ethereum as any)?.isMetaMask ? 'MetaMask' : (window.ethereum as any)?.isOkxWallet ? 'OKX' : 'Unknown');
       
-      // Check current network FIRST using read-only provider
+      // Check current network FIRST
       const currentProvider = await getSafeBaseProvider();
       const currentNetwork = await currentProvider.getNetwork();
       const currentChain = Number(currentNetwork.chainId);
       
-      console.log(`Current chain: ${currentChain}`);
+      console.log('Current chain:', currentChain);
       
       if (currentChain === targetChainId) {
         const networkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
@@ -325,19 +325,19 @@ function App() {
       }
       
       const targetNetworkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
-      info(`🔄 Switching to ${targetNetworkName}... Check your wallet!`);
+      info(`🔄 Switching to ${targetNetworkName}... If popup doesn't appear, please switch manually in your wallet.`);
       
       try {
-        // Use window.ethereum.request directly (not through provider)
-        // This ensures the popup appears
-        console.log('Calling wallet_switchEthereumChain via window.ethereum.request...');
+        console.log('Calling wallet_switchEthereumChain...');
+        console.log('Request params:', { chainId: chainIdHex });
         
+        // Force wallet popup by using request directly
         const result = await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: chainIdHex }],
         });
         
-        console.log('Switch request completed:', result);
+        console.log('✅ Switch request completed:', result);
         
         // Wait for wallet to complete the switch
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -347,7 +347,7 @@ function App() {
         const verifyNetwork = await verifyProvider.getNetwork();
         const actualChainId = Number(verifyNetwork.chainId);
         
-        console.log(`Verified chain: ${actualChainId} (expected: ${targetChainId})`);
+        console.log('Verified chain after switch:', actualChainId, 'Expected:', targetChainId);
         
         if (actualChainId === targetChainId) {
           setCurrentChainId(targetChainId);
@@ -356,7 +356,7 @@ function App() {
           const networkName = targetChainId === BASE_MAINNET_CHAIN_ID ? 'Base Mainnet' : 'Base Sepolia';
           success(`✅ Switched to ${networkName}!`);
           
-          if (account && isContractDeployed()) {
+          if (account && isContractOnNetwork(targetChainId)) {
             await loadData();
           }
         } else {
@@ -395,7 +395,7 @@ function App() {
               await contractService.reinitialize();
               success(`✅ Added ${networkParams.chainName}!`);
               
-              if (account && isContractDeployed()) {
+              if (account && isContractOnNetwork(targetChainId)) {
                 await loadData();
               }
             } else {
@@ -403,6 +403,7 @@ function App() {
               setCurrentChainId(actualChainId);
             }
           } catch (addError: any) {
+            console.error('❌ Add network error:', addError);
             if (addError.code === 4001) {
               info('Cancelled');
             } else if (addError.code === -32002) {
@@ -412,11 +413,14 @@ function App() {
             }
           }
         } else if (switchError.code === 4001) {
-          info('Cancelled');
+          console.log('User rejected network switch');
+          info('Network switch cancelled. Please switch manually in your wallet to continue.');
         } else if (switchError.code === -32002) {
-          warning('⚠️ Request pending - click your wallet extension icon!');
+          console.warn('Request already pending');
+          warning('⚠️ Request pending - click your wallet extension icon or switch manually!');
         } else {
-          error(`Failed: ${switchError.message || 'Unknown error'}`);
+          console.error('Unknown switch error:', switchError);
+          error(`Failed to switch automatically. Please switch to ${targetNetworkName} manually in your wallet.`);
         }
       }
     } catch (err: any) {
@@ -692,9 +696,12 @@ function App() {
             </p>
             <div className="bg-surface-light rounded-xl p-4 text-left text-sm mb-4">
               <p className="text-text-secondary mb-2">📡 Please switch to:</p>
-              <div className="bg-surface px-3 py-2 rounded font-mono text-primary">
+              <div className="bg-surface px-3 py-2 rounded font-mono text-primary mb-2">
                 Base Sepolia (Chain ID: 84532)
               </div>
+              <p className="text-xs text-text-secondary mt-2">
+                👉 If the automatic switch doesn't work, please change your network manually in your wallet settings.
+              </p>
             </div>
             <button 
               className="btn-primary w-full px-8 py-4 text-lg font-bold" 
