@@ -1,6 +1,6 @@
 import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther, JsonRpcSigner, getAddress } from 'ethers';
 import type { Eip1193Provider } from 'ethers';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, BASE_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID } from './config';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, BASE_MAINNET_CHAIN_ID } from './config';
 
 // Create a static JSON RPC provider for Base networks that has ENS explicitly disabled
 const createStaticProvider = (chainId: number): JsonRpcProvider => {
