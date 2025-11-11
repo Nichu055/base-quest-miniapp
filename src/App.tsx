@@ -653,7 +653,10 @@ function App() {
       <div className="w-full max-w-miniapp h-miniapp mx-auto bg-background relative overflow-hidden">
         <div className="flex items-center justify-center h-full px-10 py-10">
           <div className="text-center max-w-[360px]">
-            <h1 className="gradient-text text-[42px] font-bold mb-2">⚡ Base Quest</h1>
+            <div className="mb-4 flex justify-center">
+              <img src="/logo.svg" alt="Base Quest" className="w-20 h-20" />
+            </div>
+            <h1 className="gradient-text text-[42px] font-bold mb-2">Base Quest</h1>
             <p className="text-xl font-semibold text-text-secondary mb-6">The Onchain Streak Game</p>
             <p className="text-[15px] leading-relaxed text-text-secondary mb-8">
               Complete daily quests, maintain your streak, and climb the leaderboard to win weekly ETH rewards on Base!
