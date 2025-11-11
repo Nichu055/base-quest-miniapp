@@ -13,6 +13,7 @@ import TaskList from './components/TaskList';
 import Leaderboard from './components/Leaderboard';
 import WeeklyTimer from './components/WeeklyTimer';
 import Toast from './components/Toast';
+import Loader from './components/Loader';
 
 // Safe provider that skips ENS lookups on Base networks
 // Uses custom RPC if available, otherwise falls back to public endpoints
@@ -641,8 +642,8 @@ function App() {
     return (
       <div className="w-full max-w-miniapp h-miniapp mx-auto bg-background relative overflow-hidden">
         <div className="flex flex-col items-center justify-center h-full px-10 py-10 gap-5">
-          <div className="spinner"></div>
-          <p>Loading Base Quest...</p>
+          <Loader variant="pulse" size="lg" />
+          <p className="text-text-secondary">Loading Base Quest...</p>
         </div>
       </div>
     );

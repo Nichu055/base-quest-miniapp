@@ -96,7 +96,65 @@
   }
 
   .spinner {
-    @apply border-[3px] border-surface-light border-t-primary rounded-full w-10 h-10 animate-spin;
+    @apply relative w-12 h-12;
+  }
+
+  .spinner::before,
+  .spinner::after {
+    content: '';
+    @apply absolute inset-0 rounded-full border-[3px] border-transparent;
+  }
+
+  .spinner::before {
+    @apply border-t-primary border-r-primary;
+    animation: spinRotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+
+  .spinner::after {
+    @apply border-t-secondary border-r-secondary;
+    animation: spinRotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    animation-delay: -0.6s;
+  }
+
+  @keyframes spinRotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Pulse loader variant */
+  .loader-pulse {
+    @apply relative w-14 h-14;
+  }
+
+  .loader-pulse::before,
+  .loader-pulse::after {
+    content: '';
+    @apply absolute inset-0 rounded-full border-2;
+    animation: pulseRing 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  .loader-pulse::before {
+    @apply border-primary;
+  }
+
+  .loader-pulse::after {
+    @apply border-secondary;
+    animation-delay: 1s;
+  }
+
+  @keyframes pulseRing {
+    0% {
+      transform: scale(0.5);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1.4);
+      opacity: 0;
+    }
   }
 
   .toast {
