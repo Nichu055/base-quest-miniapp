@@ -1,35 +1,31 @@
 {
   "accountAssociation": {
-    "header": "PLACEHOLDER_HEADER",
-    "payload": "PLACEHOLDER_PAYLOAD",
-    "signature": "PLACEHOLDER_SIGNATURE"
+    "header": "",
+    "payload": "",
+    "signature": ""
   },
-  "frame": {
+  "baseBuilder": {
+    "ownerAddress": "0x"
+  },
+  "miniapp": {
     "version": "1",
     "name": "Base Quest",
-    "iconUrl": "https://base-quest-miniapp.vercel.app/icon-1024.png",
     "homeUrl": "https://base-quest-miniapp.vercel.app",
+    "iconUrl": "https://base-quest-miniapp.vercel.app/icon.png",
     "splashImageUrl": "https://base-quest-miniapp.vercel.app/splash.png",
     "splashBackgroundColor": "#0052FF",
     "subtitle": "Daily Onchain Streak Game",
     "description": "Complete daily quests on Base blockchain, maintain your streak, compete on the leaderboard, and win weekly ETH rewards. Build your onchain reputation!",
+    "screenshotUrls": [
+      "https://base-quest-miniapp.vercel.app/screenshot.png"
+    ],
     "primaryCategory": "games",
     "tags": ["blockchain", "quest", "streak", "rewards", "base"],
-    "heroImageUrl": "https://base-quest-miniapp.vercel.app/hero-image.png",
+    "heroImageUrl": "https://base-quest-miniapp.vercel.app/og.png",
     "tagline": "Build streaks, earn rewards",
     "ogTitle": "Base Quest - Onchain Streak Game",
     "ogDescription": "Complete daily quests, maintain streaks, and win weekly ETH rewards on Base blockchain",
-    "ogImageUrl": "https://base-quest-miniapp.vercel.app/images/og-image.png",
-    "screenshotUrls": [
-      "https://base-quest-miniapp.vercel.app/screenshot-1.png",
-      "https://base-quest-miniapp.vercel.app/screenshot-2.png",
-      "https://base-quest-miniapp.vercel.app/screenshot-3.png"
-    ],
-    "requiredChains": ["eip155:8453"],
-    "requiredCapabilities": [
-      "ethereum_provider",
-      "wallet.sendTransaction",
-      "wallet.signMessage"
-    ]
+    "ogImageUrl": "https://base-quest-miniapp.vercel.app/og.png",
+    "noindex": false
   }
 }
