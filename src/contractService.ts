@@ -1,6 +1,6 @@
 import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther, JsonRpcSigner, getAddress } from 'ethers';
 import type { Eip1193Provider } from 'ethers';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, BASE_MAINNET_CHAIN_ID } from './config';
+import { getContractAddress, CONTRACT_ABI, BASE_MAINNET_CHAIN_ID } from './config';
 
 // Create a static JSON RPC provider for Base networks that has ENS explicitly disabled
 const createStaticProvider = (chainId: number): JsonRpcProvider => {
@@ -60,14 +60,15 @@ class ContractService {
   private signer: JsonRpcSigner | null = null;
   private provider: BrowserProvider | JsonRpcProvider | null = null;
   private contractAddress: string;
+  private currentChainId: number = 84532; // Default to Sepolia
 
   constructor() {
-    // Ensure contract address is checksummed and valid
-    const address = CONTRACT_ADDRESS as string;
+    // Initialize with default network (Sepolia)
+    const address = getContractAddress(this.currentChainId);
     try {
-      // Validate that CONTRACT_ADDRESS is not the placeholder
+      // Validate that contract address is not the placeholder
       if (address === '0xYourContractAddressHere' || !address.startsWith('0x') || address.length !== 42) {
-        throw new Error('Invalid contract address. Please update CONTRACT_ADDRESS in config.ts with your deployed contract address.');
+        throw new Error('Invalid contract address. Please deploy contract and update CONTRACT_ADDRESSES in config.ts.');
       }
       this.contractAddress = getAddress(address);
     } catch (err: any) {
@@ -87,19 +88,28 @@ class ContractService {
   async initialize(provider: BrowserProvider | JsonRpcProvider) {
     this.provider = provider;
     
+    // Get the chain ID and update contract address accordingly
+    const network = await provider.getNetwork();
+    this.currentChainId = Number(network.chainId);
+    const contractAddr = getContractAddress(this.currentChainId);
+    
+    // Validate contract address for this network
+    if (contractAddr === '0x0000000000000000000000000000000000000000' || contractAddr === '0xYourContractAddressHere') {
+      console.warn(`No contract deployed on chain ${this.currentChainId}`);
+      this.contractAddress = contractAddr;
+    } else {
+      this.contractAddress = getAddress(contractAddr);
+    }
+    
     // ALWAYS use JsonRpcProvider (safe provider) for Base networks
-    // Never use BrowserProvider.getSigner() as it can trigger ENS
     if (provider instanceof JsonRpcProvider) {
       // JsonRpcProvider - read-only mode initially
       this.contract = new Contract(this.contractAddress, CONTRACT_ABI, provider);
       this.signer = null; // Will get signer on-demand for transactions
     } else {
-      // This path should never be hit if using getSafeBaseProvider correctly
-      // But kept for safety - convert to safe provider
+      // Convert to safe provider
       console.warn('BrowserProvider passed to initialize - converting to safe provider');
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-      const safeProvider = createStaticProvider(chainId);
+      const safeProvider = createStaticProvider(this.currentChainId);
       this.provider = safeProvider;
       this.contract = new Contract(this.contractAddress, CONTRACT_ABI, safeProvider);
       this.signer = null;

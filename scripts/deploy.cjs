@@ -1,7 +1,19 @@
 const hre = require("hardhat");
 
 async function main() {
-  console.log("🚀 Deploying BaseQuest contract to Base...");
+  const networkName = hre.network.name;
+  const isMainnet = networkName === 'base-mainnet';
+  
+  console.log(`🚀 Deploying BaseQuest contract to ${isMainnet ? 'Base Mainnet' : 'Base Sepolia'}...`);
+  console.log(`⚠️  Network: ${networkName}`);
+  
+  if (isMainnet) {
+    console.log("\n⚠️  WARNING: You are deploying to MAINNET! ⚠️");
+    console.log("This will use REAL ETH. Make sure you:");
+    console.log("1. Have sufficient ETH in your wallet for deployment gas");
+    console.log("2. Have tested thoroughly on Base Sepolia");
+    console.log("3. Are ready for production deployment\n");
+  }
 
   // Using deployer address for both treasury and attester (you can change later)
   const [deployer] = await hre.ethers.getSigners();
@@ -11,6 +23,9 @@ async function main() {
   console.log("Deploying with account:", deployer.address);
   console.log("Treasury Address:", TREASURY_ADDRESS);
   console.log("Attester Address:", ATTESTER_ADDRESS);
+  
+  const balance = await hre.ethers.provider.getBalance(deployer.address);
+  console.log("Account balance:", hre.ethers.formatEther(balance), "ETH\n");
 
   // Deploy contract
   const BaseQuest = await hre.ethers.getContractFactory("BaseQuest");
@@ -22,12 +37,18 @@ async function main() {
   console.log("✅ BaseQuest deployed to:", contractAddress);
   console.log("");
   console.log("📝 Next steps:");
-  console.log("1. Update src/config.ts with contract address:", contractAddress);
-  console.log("2. Verify contract on Basescan");
-  console.log("3. Test all functions on Sepolia before mainnet deployment");
+  
+  if (isMainnet) {
+    console.log(`1. Update src/config.ts CONTRACT_ADDRESSES[8453] = "${contractAddress}"`);
+  } else {
+    console.log(`1. Update src/config.ts CONTRACT_ADDRESSES[84532] = "${contractAddress}"`);
+  }
+  
+  console.log("2. Add tasks using: npx hardhat run scripts/addManyTasks.cjs --network", networkName);
+  console.log("3. Verify contract on Basescan");
   console.log("");
   console.log("Verification command:");
-  console.log(`npx hardhat verify --network base-sepolia ${contractAddress} "${TREASURY_ADDRESS}" "${ATTESTER_ADDRESS}"`);
+  console.log(`npx hardhat verify --network ${networkName} ${contractAddress} "${TREASURY_ADDRESS}" "${ATTESTER_ADDRESS}"`);
 }
 
 main()

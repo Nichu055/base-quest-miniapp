@@ -1,7 +1,17 @@
-// Contract deployed on Base Sepolia
-// Deploy command: npx hardhat run scripts/deploy.cjs --network base-sepolia
-export const CONTRACT_ADDRESS = "0xAA4c50b0023530432EEe23F8c6d29756b5a317dc"; // Base Sepolia deployment
-export const CONTRACT_NETWORK = 84532; // Only deployed on Base Sepolia
+// Contract addresses per network
+export const CONTRACT_ADDRESSES = {
+  [84532]: "0xAA4c50b0023530432EEe23F8c6d29756b5a317dc", // Base Sepolia
+  [8453]: "0x749E23524d7033C8d39664f2f7efB5ab0E4DFEfE", // Base Mainnet
+} as const;
+
+// Get contract address for current network
+export const getContractAddress = (chainId: number): string => {
+  return CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES] || "0x0000000000000000000000000000000000000000";
+};
+
+// Legacy export for backward compatibility
+export const CONTRACT_ADDRESS = CONTRACT_ADDRESSES[84532];
+export const CONTRACT_NETWORK = 84532; // Primary network (Sepolia for now)
 
 // Helper to check if contract is deployed
 export const isContractDeployed = () => {
@@ -12,7 +22,9 @@ export const isContractDeployed = () => {
 
 // Helper to check if contract is deployed on current network
 export const isContractOnNetwork = (chainId: number) => {
-  return isContractDeployed() && chainId === CONTRACT_NETWORK;
+  const address = getContractAddress(chainId);
+  return address !== "0x0000000000000000000000000000000000000000" && 
+         address !== "0xYourContractAddressHere";
 };
 
 export const CONTRACT_ABI = [
