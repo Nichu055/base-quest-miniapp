@@ -16,17 +16,18 @@ async function main() {
   const BaseQuest = await hre.ethers.getContractFactory("BaseQuest");
   const baseQuest = await BaseQuest.deploy(TREASURY_ADDRESS, ATTESTER_ADDRESS);
 
-  await baseQuest.deployed();
+  await baseQuest.waitForDeployment();
+  const contractAddress = await baseQuest.getAddress();
 
-  console.log("✅ BaseQuest deployed to:", baseQuest.address);
+  console.log("✅ BaseQuest deployed to:", contractAddress);
   console.log("");
   console.log("📝 Next steps:");
-  console.log("1. Update src/config.ts with contract address:", baseQuest.address);
+  console.log("1. Update src/config.ts with contract address:", contractAddress);
   console.log("2. Verify contract on Basescan");
   console.log("3. Test all functions on Sepolia before mainnet deployment");
   console.log("");
   console.log("Verification command:");
-  console.log(`npx hardhat verify --network base-sepolia ${baseQuest.address} "${TREASURY_ADDRESS}" "${ATTESTER_ADDRESS}"`);
+  console.log(`npx hardhat verify --network base-sepolia ${contractAddress} "${TREASURY_ADDRESS}" "${ATTESTER_ADDRESS}"`);
 }
 
 main()
