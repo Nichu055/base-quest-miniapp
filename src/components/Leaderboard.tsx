@@ -1,3 +1,4 @@
+import { Trophy, Medal, Flame, Star, Gift } from 'lucide-react';
 import type { LeaderboardEntry } from '../contractService';
 
 interface LeaderboardProps {
@@ -7,11 +8,12 @@ interface LeaderboardProps {
 
 function Leaderboard({ leaderboard, currentAccount }: LeaderboardProps) {
   const getMedalIcon = (rank: number) => {
+    const className = "w-7 h-7";
     switch (rank) {
-      case 0: return '🥇';
-      case 1: return '🥈';
-      case 2: return '🥉';
-      default: return `#${rank + 1}`;
+      case 0: return <Medal className={`${className} text-yellow-400 fill-yellow-400`} />;
+      case 1: return <Medal className={`${className} text-gray-400 fill-gray-400`} />;
+      case 2: return <Medal className={`${className} text-orange-600 fill-orange-600`} />;
+      default: return <span className="text-lg text-text-secondary font-bold">#{rank + 1}</span>;
     }
   };
 
@@ -22,7 +24,10 @@ function Leaderboard({ leaderboard, currentAccount }: LeaderboardProps) {
   return (
     <div className="my-6">
       <div className="mb-5">
-        <h2 className="text-xl font-semibold mb-1">🏆 Leaderboard</h2>
+        <div className="flex items-center gap-2 mb-1">
+          <Trophy className="w-5 h-5 text-primary" />
+          <h2 className="text-xl font-semibold">Leaderboard</h2>
+        </div>
         <p className="text-text-secondary">Top players by streak + weekly BP</p>
       </div>
 
@@ -44,12 +49,8 @@ function Leaderboard({ leaderboard, currentAccount }: LeaderboardProps) {
                   isCurrentUser ? 'border-primary bg-[rgba(0,82,255,0.05)]' : 'border-border'
                 } ${index < 3 ? 'bg-[rgba(255,215,0,0.03)]' : ''}`}
               >
-                <div className="w-10 text-center font-bold">
-                  {typeof getMedalIcon(index) === 'string' && getMedalIcon(index).startsWith('#') ? (
-                    <span className="text-lg text-text-secondary">{getMedalIcon(index)}</span>
-                  ) : (
-                    <span className="text-[28px]">{getMedalIcon(index)}</span>
-                  )}
+                <div className="w-10 flex justify-center items-center font-bold">
+                  {getMedalIcon(index)}
                 </div>
 
                 <div className="flex-1">
@@ -62,8 +63,14 @@ function Leaderboard({ leaderboard, currentAccount }: LeaderboardProps) {
                     )}
                   </div>
                   <div className="flex gap-4 text-[13px] text-text-secondary">
-                    <span className="flex items-center gap-1">🔥 {entry.streak}</span>
-                    <span className="flex items-center gap-1">⭐ {entry.points} BP</span>
+                    <span className="flex items-center gap-1">
+                      <Flame className="w-3 h-3" />
+                      {entry.streak}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-current" />
+                      {entry.points} BP
+                    </span>
                   </div>
                 </div>
 
@@ -77,10 +84,11 @@ function Leaderboard({ leaderboard, currentAccount }: LeaderboardProps) {
         </div>
       )}
 
-      <div className="mt-5 p-4 bg-surface border border-border rounded-xl text-center">
-        <p className="text-[13px] text-text-secondary leading-relaxed">
-          🎁 Top 10% of players receive 90% of the weekly prize pool
-        </p>
+      <div className="mt-5 p-4 bg-surface border border-border rounded-xl">
+        <div className="flex items-center justify-center gap-2 text-[13px] text-text-secondary">
+          <Gift className="w-4 h-4" />
+          <p className="leading-relaxed">Top 10% of players receive 90% of the weekly prize pool</p>
+        </div>
       </div>
     </div>
   );

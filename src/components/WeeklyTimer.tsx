@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { DollarSign } from 'lucide-react';
 import { contractService } from '../contractService';
 
 interface WeeklyTimerProps {
@@ -9,14 +10,38 @@ interface WeeklyTimerProps {
 
 function WeeklyTimer({ currentWeek, prizePool, isConnected = false }: WeeklyTimerProps) {
   const [timeUntilEnd, setTimeUntilEnd] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      setIsLoading(false);
+      return;
+    }
     
     loadEndTime();
-    const interval = setInterval(loadEndTime, 1000);
-    return () => clearInterval(interval);
+    // Fetch from contract every 30 seconds instead of every second
+    intervalRef.current = setInterval(loadEndTime, 30000);
+    
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
   }, [isConnected]);
+
+  // Separate countdown that decrements locally every second
+  useEffect(() => {
+    if (timeUntilEnd > 0) {
+      countdownRef.current = setInterval(() => {
+        setTimeUntilEnd(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      
+      return () => {
+        if (countdownRef.current) clearInterval(countdownRef.current);
+      };
+    }
+  }, [timeUntilEnd]);
 
   const loadEndTime = async () => {
     if (!isConnected) return;
@@ -24,9 +49,11 @@ function WeeklyTimer({ currentWeek, prizePool, isConnected = false }: WeeklyTime
     try {
       const time = await contractService.getTimeUntilWeekEnd();
       setTimeUntilEnd(time);
+      setIsLoading(false);
     } catch (error) {
       // Silently fail if contract not initialized
       console.debug('Timer paused - wallet not connected');
+      setIsLoading(false);
     }
   };
 
@@ -46,7 +73,7 @@ function WeeklyTimer({ currentWeek, prizePool, isConnected = false }: WeeklyTime
       <div className="flex justify-between items-center mb-5">
         <h3 className="text-lg font-semibold text-text-primary">Week {currentWeek}</h3>
         <div className="flex items-center gap-1.5 bg-surface border border-border rounded-[20px] px-3.5 py-1.5">
-          <span className="text-base">💰</span>
+          <DollarSign className="w-4 h-4 text-secondary" />
           <span className="text-sm font-bold text-secondary">{parseFloat(prizePool).toFixed(6)} ETH</span>
         </div>
       </div>
