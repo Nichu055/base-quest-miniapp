@@ -1,7 +1,7 @@
 // Contract addresses per network
 export const CONTRACT_ADDRESSES = {
   [84532]: "0xAA4c50b0023530432EEe23F8c6d29756b5a317dc", // Base Sepolia
-  [8453]: "0x749E23524d7033C8d39664f2f7efB5ab0E4DFEfE", // Base Mainnet
+  [8453]: "0x679f650E03d35D3be607f7f04dd8AA323A824DA8", // Base Mainnet - Deployed Nov 15, 2025
 } as const;
 
 // Get contract address for current network
