@@ -10,13 +10,11 @@ interface WeeklyTimerProps {
 
 function WeeklyTimer({ currentWeek, prizePool, isConnected = false }: WeeklyTimerProps) {
   const [timeUntilEnd, setTimeUntilEnd] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!isConnected) {
-      setIsLoading(false);
       return;
     }
     
@@ -49,11 +47,9 @@ function WeeklyTimer({ currentWeek, prizePool, isConnected = false }: WeeklyTime
     try {
       const time = await contractService.getTimeUntilWeekEnd();
       setTimeUntilEnd(time);
-      setIsLoading(false);
     } catch (error) {
       // Silently fail if contract not initialized
       console.debug('Timer paused - wallet not connected');
-      setIsLoading(false);
     }
   };
 
