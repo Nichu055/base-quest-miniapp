@@ -300,6 +300,11 @@ contract BaseQuest {
     }
     
     function _startNewWeek() internal {
+        // Reset activeThisWeek flag for all active players
+        for (uint256 i = 0; i < activePlayers.length; i++) {
+            players[activePlayers[i]].activeThisWeek = false;
+        }
+        
         currentWeek++;
         weekStartTime = block.timestamp;
         weeklyPrizePool = 0;
@@ -421,5 +426,18 @@ contract BaseQuest {
         } else {
             timeUntilMonthReset = monthEnd - block.timestamp;
         }
+    }
+    
+    // Debug function to check player status
+    function getPlayerStatus(address player) external view returns (
+        bool hasJoinedCurrentWeek,
+        bool isActiveThisWeek,
+        uint256 playerCurrentWeek,
+        uint256 contractCurrentWeek
+    ) {
+        hasJoinedCurrentWeek = weeklyParticipation[currentWeek][player];
+        isActiveThisWeek = players[player].activeThisWeek;
+        playerCurrentWeek = players[player].playerWeek;
+        contractCurrentWeek = currentWeek;
     }
 }

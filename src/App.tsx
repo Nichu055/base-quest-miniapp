@@ -614,12 +614,24 @@ function App() {
       success('Successfully joined this week! Start completing tasks to build your streak.');
     } catch (err: any) {
       console.error('Failed to join week:', err);
-      if (err.message?.includes('user rejected')) {
+      
+      // Extract error message
+      const errorMessage = err.message || err.reason || err.toString();
+      
+      if (err.message?.includes('user rejected') || err.code === 4001) {
         info('Transaction cancelled');
-      } else if (err.message?.includes('Insufficient entry fee')) {
+      } else if (errorMessage.includes('Already joined this week')) {
+        warning('You have already joined this week. Please wait for the next week to join again.');
+        // Force refresh data to update UI
+        await loadData();
+      } else if (errorMessage.includes('Insufficient entry fee')) {
         error(`Entry fee required: ${entryFee} ETH. Please make sure you have enough ETH in your wallet.`);
+      } else if (errorMessage.includes('insufficient funds')) {
+        error(`Insufficient funds. You need at least ${entryFee} ETH plus gas fees.`);
       } else {
-        error(err.message || 'Failed to join week. Please try again.');
+        error(errorMessage.includes('execution reverted') 
+          ? 'Transaction failed. Please check the error and try again.' 
+          : (errorMessage || 'Failed to join week. Please try again.'));
       }
     } finally {
       setLoading(false);
