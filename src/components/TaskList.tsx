@@ -64,9 +64,12 @@ function TaskList({ tasks, playerData, onCompleteTask, loading }: TaskListProps)
         <div className="bg-surface border border-success rounded-xl p-4 mb-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <CheckCircle className="w-6 h-6 text-success" />
-            <span className="font-semibold text-success">All Tasks Complete!</span>
+            <span className="font-semibold text-success">Daily Tasks Complete! 🎉</span>
           </div>
-          <p className="text-sm text-text-secondary">Come back in 24 hours for new tasks to continue your streak</p>
+          <p className="text-sm text-text-secondary mb-2">You've completed all 3 tasks for today. Come back in 24 hours for new tasks!</p>
+          <p className="text-xs text-text-secondary">
+            🔥 Keep your streak alive by completing tasks daily throughout this week
+          </p>
         </div>
       )}
 
