@@ -635,7 +635,7 @@ function App() {
       console.log('💰 Joining week with entry fee:', entryFee, 'ETH');
       
       // Wait for transaction to complete
-      const tx = await contractService.joinWeek(entryFee);
+      await contractService.joinWeek(entryFee);
       console.log('⏳ Transaction submitted, waiting for confirmation...');
       
       // Wait a bit for blockchain to update
