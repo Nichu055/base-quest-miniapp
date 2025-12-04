@@ -566,7 +566,8 @@ function App() {
         console.info('ℹ️ No players on leaderboard yet. Be the first to join!');
       }
     } catch (err: any) {
-      console.error('Failed to load data:', err);
+      console.error('❌ Failed to load data:', err);
+      console.error('Full error object:', JSON.stringify(err, null, 2));
       
       // Check for rate limiting (429 Too Many Requests)
       if (err.message?.includes('429') || err.message?.toLowerCase().includes('too many requests')) {
@@ -578,10 +579,18 @@ function App() {
       // Check if it's a zero address / contract not deployed error
       if (err.code === 'CALL_EXCEPTION' && err.message?.includes('missing revert data')) {
         console.warn('Contract call failed - using defaults');
+        error('⚠️ Contract not deployed properly. Please check contract address in config.ts');
         // Set defaults instead of showing error
         setEntryFee('0.00001');
         setPrizePool('0');
         setCurrentWeek(1);
+        return;
+      }
+      
+      // Check for ABI mismatch
+      if (err.message?.includes('could not decode result data') || err.code === 'BAD_DATA') {
+        console.error('⚠️ ABI mismatch detected!');
+        error('⚠️ Contract ABI mismatch. The deployed contract may be outdated. Please redeploy with latest version.');
         return;
       }
       
@@ -595,9 +604,19 @@ function App() {
       if (err.message?.includes('Please connect your wallet')) {
         error('Connection lost. Please reconnect your wallet.');
         disconnectWallet();
-      } else if (!err.message?.includes('missing revert data') && !err.message?.includes('429')) {
-        // Don't show error for contract deployment issues or rate limits (already warned above)
-        error('Failed to load data. Please try again.');
+        return;
+      }
+      
+      // Generic error - show the actual message
+      if (!err.message?.includes('missing revert data') && !err.message?.includes('429')) {
+        const errorMsg = err.message || 'Unknown error occurred';
+        error(`Failed to load data: ${errorMsg}`);
+        console.error('🐛 Debug info:', {
+          code: err.code,
+          message: err.message,
+          reason: err.reason,
+          stack: err.stack
+        });
       }
     }
   };
@@ -772,6 +791,23 @@ function App() {
                 <p className="text-text-secondary text-sm">
                   Complete 3 tasks daily to maintain your streak and earn rewards!
                 </p>
+                
+                {/* Diagnostic info */}
+                {playerData && (
+                  <div className="bg-surface border border-border rounded-xl p-3 mt-4 text-left">
+                    <p className="text-xs font-semibold text-text-secondary mb-2">🔍 Debug Info:</p>
+                    <div className="text-xs text-text-secondary space-y-1">
+                      <div>Active: {String(playerData.activeThisWeek)}</div>
+                      <div>Joined Week: {String(playerData.joinedWeek)}</div>
+                      <div>Player Week: {String(playerData.playerWeek)}</div>
+                      <div>Streak: {String(playerData.currentStreak)}</div>
+                    </div>
+                    <p className="text-xs text-orange-500 mt-2">
+                      ⚠️ If you see this after joining, there's a data loading issue. Check console (F12) for errors.
+                    </p>
+                  </div>
+                )}
+                
                 <button 
                   className="btn-primary w-full px-8 py-4 text-lg font-bold mt-6" 
                   onClick={handleJoinWeek}

@@ -191,19 +191,27 @@ class ContractService {
 
   async getPlayerData(address: string): Promise<PlayerData> {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
-    const data = await this.contract!.getPlayerData(address);
-    return {
-      currentStreak: data.currentStreak,
-      totalBasePoints: data.totalBasePoints,
-      lastCheckInTime: data.lastCheckInTime,
-      weeklyBasePoints: data.weeklyBasePoints,
-      activeThisWeek: data.activeThisWeek,
-      tasksCompletedToday: Number(data.tasksCompletedToday),
-      lastTaskResetTime: data.lastTaskResetTime,
-      joinedWeek: data.joinedWeek || 0n,
-      playerWeek: data.playerWeek || 0n,
-      lastMonthReset: data.lastMonthReset || 0n,
-    };
+    try {
+      const data = await this.contract!.getPlayerData(address);
+      console.log('📊 Raw player data from contract:', data);
+      return {
+        currentStreak: data.currentStreak,
+        totalBasePoints: data.totalBasePoints,
+        lastCheckInTime: data.lastCheckInTime,
+        weeklyBasePoints: data.weeklyBasePoints,
+        activeThisWeek: data.activeThisWeek,
+        tasksCompletedToday: Number(data.tasksCompletedToday),
+        lastTaskResetTime: data.lastTaskResetTime,
+        joinedWeek: data.joinedWeek || 0n,
+        playerWeek: data.playerWeek || 0n,
+        lastMonthReset: data.lastMonthReset || 0n,
+      };
+    } catch (err: any) {
+      console.error('❌ Failed to get player data:', err);
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
+      throw err; // Re-throw to be handled by caller
+    }
   }
 
   async getCurrentWeekTasks(): Promise<Task[]> {
