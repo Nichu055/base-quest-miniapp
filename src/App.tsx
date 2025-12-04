@@ -783,12 +783,7 @@ function App() {
               <div className="card p-8 text-center my-6">
                 <h2 className="text-2xl mb-3">Join Week {currentWeek}</h2>
                 <p className="text-lg font-semibold mb-2">Entry Fee: {entryFee} ETH</p>
-                <div className="bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 rounded-xl p-4 my-4">
-                  <p className="text-sm text-text-secondary">
-                    💡 Pay once to join this week's challenge. Once joined, you can complete daily tasks throughout the entire week until it ends!
-                  </p>
-                </div>
-                <p className="text-text-secondary text-sm">
+                <p className="text-text-secondary text-sm mb-4">
                   Complete 3 tasks daily to maintain your streak and earn rewards!
                 </p>
                 

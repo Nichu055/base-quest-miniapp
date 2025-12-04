@@ -112,8 +112,7 @@ export const CONTRACT_ABI = [
           {"internalType": "string", "name": "description", "type": "string"},
           {"internalType": "string", "name": "taskType", "type": "string"},
           {"internalType": "bool", "name": "isActive", "type": "bool"},
-          {"internalType": "uint256", "name": "basePointsReward", "type": "uint256"},
-          {"internalType": "string", "name": "metadata", "type": "string"}
+          {"internalType": "uint256", "name": "basePointsReward", "type": "uint256"}
         ],
         "internalType": "struct BaseQuest.Task[]",
         "name": "",
