@@ -1,5 +1,7 @@
-import { Zap, Globe, RefreshCw, Sparkles, Info, CheckCircle, Star } from 'lucide-react';
+import { Zap, Globe, RefreshCw, Sparkles, Info, CheckCircle, Star, ArrowLeftRight } from 'lucide-react';
+import { useState } from 'react';
 import type { Task, PlayerData } from '../contractService';
+import BridgeModal from './BridgeModal';
 
 interface TaskListProps {
   tasks: Task[];
@@ -9,6 +11,9 @@ interface TaskListProps {
 }
 
 function TaskList({ tasks, playerData, onCompleteTask, loading }: TaskListProps) {
+  const [bridgeModalOpen, setBridgeModalOpen] = useState(false);
+  const [selectedBridgeTask, setSelectedBridgeTask] = useState<Task | null>(null);
+  
   // Show only first 5 tasks to avoid overwhelming UI
   // In production, the contract would return 3 random tasks per user per day
   const displayTasks = tasks.slice(0, 5);
@@ -24,6 +29,17 @@ function TaskList({ tasks, playerData, onCompleteTask, loading }: TaskListProps)
       default:
         return <Sparkles className={iconClass} />;
     }
+  };
+
+  const isBridgeTask = (task: Task): boolean => {
+    return task.description.toLowerCase().includes('bridge') && 
+           typeof task.metadata === 'string' && 
+           task.metadata.includes('bridgeUrls');
+  };
+
+  const handleBridgeTaskClick = (task: Task) => {
+    setSelectedBridgeTask(task);
+    setBridgeModalOpen(true);
   };
 
   const canCompleteMoreTasks = playerData.tasksCompletedToday < 3;
@@ -85,9 +101,19 @@ function TaskList({ tasks, playerData, onCompleteTask, loading }: TaskListProps)
               )}
               
               {task.taskType === 'offchain' && (
-                <span className="text-xs text-text-secondary bg-surface-light px-3 py-1.5 rounded-md border border-border">
-                  Verified by Attester
-                </span>
+                isBridgeTask(task) ? (
+                  <button
+                    className="bg-secondary text-white px-4 py-2 text-sm rounded-lg font-semibold transition-all duration-300 hover:bg-secondary/90 hover:shadow-lg flex items-center gap-1.5"
+                    onClick={() => handleBridgeTaskClick(task)}
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                    Start Bridge
+                  </button>
+                ) : (
+                  <span className="text-xs text-text-secondary bg-surface-light px-3 py-1.5 rounded-md border border-border">
+                    Verified by Attester
+                  </span>
+                )
               )}
             </div>
           </div>
@@ -99,6 +125,16 @@ function TaskList({ tasks, playerData, onCompleteTask, loading }: TaskListProps)
           <p className="my-2">No tasks available for this week yet.</p>
           <p className="text-text-secondary my-2">Check back soon!</p>
         </div>
+      )}
+
+      {/* Bridge Modal */}
+      {selectedBridgeTask && (
+        <BridgeModal
+          isOpen={bridgeModalOpen}
+          onClose={() => setBridgeModalOpen(false)}
+          taskDescription={selectedBridgeTask.description}
+          metadata={selectedBridgeTask.metadata}
+        />
       )}
     </div>
   );
