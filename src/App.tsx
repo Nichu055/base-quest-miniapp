@@ -621,8 +621,8 @@ function App() {
       if (err.message?.includes('user rejected') || err.code === 4001) {
         info('Transaction cancelled');
       } else if (errorMessage.includes('Already joined this week')) {
-        warning('You have already joined this week. Please wait for the next week to join again.');
-        // Force refresh data to update UI
+        success('✅ You\'re already in! You\'ve joined this week and can complete tasks until the week ends.');
+        // Force refresh data to update UI to show tasks
         await loadData();
       } else if (errorMessage.includes('Insufficient entry fee')) {
         error(`Entry fee required: ${entryFee} ETH. Please make sure you have enough ETH in your wallet.`);
@@ -743,9 +743,14 @@ function App() {
             {!playerData?.activeThisWeek ? (
               <div className="card p-8 text-center my-6">
                 <h2 className="text-2xl mb-3">Join Week {currentWeek}</h2>
-                <p>Entry Fee: {entryFee} ETH</p>
-                <p className="text-text-secondary my-2">
-                  Join this week's challenge to start completing quests and earning rewards!
+                <p className="text-lg font-semibold mb-2">Entry Fee: {entryFee} ETH</p>
+                <div className="bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 rounded-xl p-4 my-4">
+                  <p className="text-sm text-text-secondary">
+                    💡 Pay once to join this week's challenge. Once joined, you can complete daily tasks throughout the entire week until it ends!
+                  </p>
+                </div>
+                <p className="text-text-secondary text-sm">
+                  Complete 3 tasks daily to maintain your streak and earn rewards!
                 </p>
                 <button 
                   className="btn-primary w-full px-8 py-4 text-lg font-bold mt-6" 
