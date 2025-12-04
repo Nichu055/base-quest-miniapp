@@ -96,7 +96,12 @@ function WeeklyTimer({ currentWeek, prizePool, isConnected = false }: WeeklyTime
         </div>
       </div>
 
-      <div className="text-center text-xs text-text-secondary uppercase tracking-[1px] font-semibold">Until Week Ends</div>
+      <div className="text-center">
+        <div className="text-xs text-text-secondary uppercase tracking-[1px] font-semibold mb-1">Until Week Ends</div>
+        <div className="text-[10px] text-text-secondary">
+          🔄 New week starts when timer reaches zero
+        </div>
+      </div>
     </div>
   );
 }
