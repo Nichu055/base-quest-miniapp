@@ -40,6 +40,9 @@ export interface PlayerData {
   activeThisWeek: boolean;
   tasksCompletedToday: number;
   lastTaskResetTime: bigint;
+  joinedWeek: bigint;
+  playerWeek: bigint;
+  lastMonthReset: bigint;
 }
 
 export interface Task {
@@ -47,6 +50,7 @@ export interface Task {
   taskType: string;
   isActive: boolean;
   basePointsReward: bigint;
+  metadata: string;
 }
 
 export interface LeaderboardEntry {
@@ -196,6 +200,9 @@ class ContractService {
       activeThisWeek: data.activeThisWeek,
       tasksCompletedToday: Number(data.tasksCompletedToday),
       lastTaskResetTime: data.lastTaskResetTime,
+      joinedWeek: data.joinedWeek || 0n,
+      playerWeek: data.playerWeek || 0n,
+      lastMonthReset: data.lastMonthReset || 0n,
     };
   }
 
@@ -293,6 +300,20 @@ class ContractService {
     if (!this.isInitialized()) throw new Error('Please connect your wallet first');
     const time = await this.contract!.getTimeUntilDayReset(address);
     return Number(time);
+  }
+
+  async getPlayerWeekInfo(address: string): Promise<{ playerWeek: number; timeUntilMonthReset: number }> {
+    if (!this.isInitialized()) throw new Error('Please connect your wallet first');
+    try {
+      const [playerWeek, timeUntilMonthReset] = await this.contract!.getPlayerWeekInfo(address);
+      return {
+        playerWeek: Number(playerWeek),
+        timeUntilMonthReset: Number(timeUntilMonthReset)
+      };
+    } catch (err) {
+      console.warn('getPlayerWeekInfo not available on this contract version:', err);
+      return { playerWeek: 0, timeUntilMonthReset: 0 };
+    }
   }
 }
 
