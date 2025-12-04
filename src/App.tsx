@@ -549,7 +549,12 @@ function App() {
       setPrizePool(pool);
       setCurrentWeek(week);
       
-      console.log('✅ Data loaded - Entry fee:', actualFee, 'ETH');
+      console.log('✅ Data loaded successfully:');
+      console.log('  - Active this week:', playerInfo.activeThisWeek);
+      console.log('  - Current streak:', Number(playerInfo.currentStreak));
+      console.log('  - Weekly BP:', Number(playerInfo.weeklyBasePoints));
+      console.log('  - Tasks completed today:', playerInfo.tasksCompletedToday);
+      console.log('  - Entry fee:', actualFee, 'ETH');
       
       // Show info if no tasks available
       if (weekTasks.length === 0) {
@@ -609,8 +614,23 @@ function App() {
     try {
       setLoading(true);
       console.log('💰 Joining week with entry fee:', entryFee, 'ETH');
-      await contractService.joinWeek(entryFee);
+      
+      // Wait for transaction to complete
+      const tx = await contractService.joinWeek(entryFee);
+      console.log('⏳ Transaction submitted, waiting for confirmation...');
+      
+      // Wait a bit for blockchain to update
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Reload data multiple times to ensure we get updated state
+      console.log('🔄 Refreshing data...');
       await loadData();
+      
+      // Double-check after another delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await loadData();
+      
+      console.log('✅ Join successful, data refreshed');
       success('Successfully joined this week! Start completing tasks to build your streak.');
     } catch (err: any) {
       console.error('Failed to join week:', err);
@@ -758,6 +778,15 @@ function App() {
                   disabled={loading}
                 >
                   {loading ? 'Joining...' : 'Join This Week'}
+                </button>
+                
+                {/* Debug: Manual refresh if join seems stuck */}
+                <button 
+                  className="w-full px-4 py-2 text-sm text-text-secondary hover:text-primary transition-colors mt-3"
+                  onClick={loadData}
+                  disabled={loading}
+                >
+                  🔄 Refresh Status
                 </button>
               </div>
             ) : (
