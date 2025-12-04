@@ -20,6 +20,7 @@ contract BaseQuest {
     uint256 public weekStartTime;
     uint256 public constant WEEK_DURATION = 7 days;
     uint256 public constant DAY_DURATION = 24 hours;
+    uint256 public constant MONTH_DURATION = 30 days; // Approximate month for reset
     uint256 public entryFee = 0.00001 ether; // 1e14 wei
     uint256 public weeklyPrizePool;
     bool public paused;
@@ -34,6 +35,9 @@ contract BaseQuest {
         bool activeThisWeek;
         uint8 tasksCompletedToday;
         uint256 lastTaskResetTime;
+        uint256 joinedWeek; // Week number when player first joined
+        uint256 playerWeek; // Player's current week (1-4, resets monthly)
+        uint256 lastMonthReset; // Timestamp of last month reset
     }
     
     struct Task {
@@ -41,6 +45,7 @@ contract BaseQuest {
         string taskType; // "onchain", "offchain", "hybrid"
         bool isActive;
         uint256 basePointsReward;
+        string metadata; // JSON string for additional data (e.g., bridge URLs, verification params)
     }
     
     struct WeeklyStats {
@@ -71,6 +76,7 @@ contract BaseQuest {
     event TaskAdded(uint256 week, uint256 taskId, string description);
     event EntryFeeUpdated(uint256 newFee);
     event AttesterUpdated(address newAttester);
+    event BridgeTaskCompleted(address indexed player, uint256 taskId, string fromChain, string toChain);
     
     // ============ Modifiers ============
     
@@ -117,6 +123,24 @@ contract BaseQuest {
         require(!weeklyParticipation[currentWeek][msg.sender], "Already joined this week");
         require(msg.value >= entryFee, "Insufficient entry fee");
         
+        // Check if player needs month reset (every 30 days)
+        if (players[msg.sender].joinedWeek > 0) {
+            if (block.timestamp >= players[msg.sender].lastMonthReset + MONTH_DURATION) {
+                players[msg.sender].playerWeek = 1; // Reset to week 1
+                players[msg.sender].lastMonthReset = block.timestamp;
+            } else {
+                // Progress to next week (1-4 cycle)
+                if (players[msg.sender].playerWeek < 4) {
+                    players[msg.sender].playerWeek++;
+                }
+            }
+        } else {
+            // First time joining
+            players[msg.sender].joinedWeek = currentWeek;
+            players[msg.sender].playerWeek = 1;
+            players[msg.sender].lastMonthReset = block.timestamp;
+        }
+        
         weeklyParticipation[currentWeek][msg.sender] = true;
         players[msg.sender].activeThisWeek = true;
         players[msg.sender].weeklyBasePoints = 0;
@@ -155,9 +179,9 @@ contract BaseQuest {
     }
     
     /**
-     * @notice Complete an offchain task (called by attester)
+     * @notice Attest bridge task completion with verification data
      */
-    function attestTaskCompletion(address player, uint256 taskId) external onlyAttester {
+    function attestBridgeCompletion(address player, uint256 taskId, string memory fromChain, string memory toChain) external onlyAttester {
         _resetDailyTasksIfNeeded(player);
         
         require(weeklyParticipation[currentWeek][player], "Player not active");
@@ -176,6 +200,7 @@ contract BaseQuest {
             _updateStreak(player);
         }
         
+        emit BridgeTaskCompleted(player, taskId, fromChain, toChain);
         emit TaskCompleted(player, taskId, points);
     }
     
@@ -288,33 +313,37 @@ contract BaseQuest {
             description: "Swap any token on a Base DEX",
             taskType: "onchain",
             isActive: true,
-            basePointsReward: 100
+            basePointsReward: 100,
+            metadata: ""
         }));
         
         weeklyTasks[1].push(Task({
             description: "Bridge $1+ from Ethereum to Base",
-            taskType: "onchain",
+            taskType: "offchain",
             isActive: true,
-            basePointsReward: 150
+            basePointsReward: 150,
+            metadata: '{"bridgeUrls":["https://bridge.base.org","https://app.optimism.io/bridge/deposit","https://www.orbiter.finance"],"minAmount":"1","fromChain":"Ethereum","toChain":"Base"}'
         }));
         
         weeklyTasks[1].push(Task({
             description: "Predict BTC direction for tomorrow",
             taskType: "offchain",
             isActive: true,
-            basePointsReward: 50
+            basePointsReward: 50,
+            metadata: ""
         }));
     }
     
     // ============ Admin Functions ============
     
-    function addTask(string memory description, string memory taskType, uint256 basePointsReward) external onlyOwner {
+    function addTask(string memory description, string memory taskType, uint256 basePointsReward, string memory metadata) external onlyOwner {
         uint256 taskId = weeklyTasks[currentWeek].length;
         weeklyTasks[currentWeek].push(Task({
             description: description,
             taskType: taskType,
             isActive: true,
-            basePointsReward: basePointsReward
+            basePointsReward: basePointsReward,
+            metadata: metadata
         }));
         
         emit TaskAdded(currentWeek, taskId, description);
@@ -382,5 +411,15 @@ contract BaseQuest {
         uint256 dayEnd = players[player].lastTaskResetTime + DAY_DURATION;
         if (block.timestamp >= dayEnd) return 0;
         return dayEnd - block.timestamp;
+    }
+    
+    function getPlayerWeekInfo(address player) external view returns (uint256 playerWeek, uint256 timeUntilMonthReset) {
+        playerWeek = players[player].playerWeek;
+        uint256 monthEnd = players[player].lastMonthReset + MONTH_DURATION;
+        if (block.timestamp >= monthEnd) {
+            timeUntilMonthReset = 0;
+        } else {
+            timeUntilMonthReset = monthEnd - block.timestamp;
+        }
     }
 }
