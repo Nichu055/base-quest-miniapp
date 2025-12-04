@@ -90,7 +90,10 @@ export const CONTRACT_ABI = [
           {"internalType": "uint256", "name": "weeklyBasePoints", "type": "uint256"},
           {"internalType": "bool", "name": "activeThisWeek", "type": "bool"},
           {"internalType": "uint8", "name": "tasksCompletedToday", "type": "uint8"},
-          {"internalType": "uint256", "name": "lastTaskResetTime", "type": "uint256"}
+          {"internalType": "uint256", "name": "lastTaskResetTime", "type": "uint256"},
+          {"internalType": "uint256", "name": "joinedWeek", "type": "uint256"},
+          {"internalType": "uint256", "name": "playerWeek", "type": "uint256"},
+          {"internalType": "uint256", "name": "lastMonthReset", "type": "uint256"}
         ],
         "internalType": "struct BaseQuest.PlayerData",
         "name": "",
@@ -109,7 +112,8 @@ export const CONTRACT_ABI = [
           {"internalType": "string", "name": "description", "type": "string"},
           {"internalType": "string", "name": "taskType", "type": "string"},
           {"internalType": "bool", "name": "isActive", "type": "bool"},
-          {"internalType": "uint256", "name": "basePointsReward", "type": "uint256"}
+          {"internalType": "uint256", "name": "basePointsReward", "type": "uint256"},
+          {"internalType": "string", "name": "metadata", "type": "string"}
         ],
         "internalType": "struct BaseQuest.Task[]",
         "name": "",
@@ -162,6 +166,16 @@ export const CONTRACT_ABI = [
     "inputs": [{"internalType": "address", "name": "player", "type": "address"}],
     "name": "getTimeUntilDayReset",
     "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "player", "type": "address"}],
+    "name": "getPlayerWeekInfo",
+    "outputs": [
+      {"internalType": "uint256", "name": "playerWeek", "type": "uint256"},
+      {"internalType": "uint256", "name": "timeUntilMonthReset", "type": "uint256"}
+    ],
     "stateMutability": "view",
     "type": "function"
   }
